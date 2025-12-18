@@ -1,11 +1,11 @@
 /**
- * Visual MCP Server
+ * Taste Engine MCP Server
  *
- * Model Context Protocol server exposing visual design intelligence tools.
- * Transforms any React/Tailwind/shadcn codebase into a cohesive visual experience.
+ * Model Context Protocol server for AI coding platforms.
+ * Provides design intelligence tools that understand your codebase
+ * and generate contextually appropriate UI code.
  *
- * @version 1.0.0
- * @contract Visual MCP Contract v1
+ * @version 0.2.0
  */
 
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
@@ -16,50 +16,10 @@ import {
   ErrorCode,
   McpError,
 } from '@modelcontextprotocol/sdk/types.js';
-import { execSync } from 'child_process';
-import { existsSync, readFileSync } from 'fs';
-import { join } from 'path';
+import { existsSync } from 'fs';
 
-// Import types from our contract
-import type {
-  VisualMCPOutput,
-  RepoMetadata as ContractRepoMetadata,
-  TasteProfile as ContractTasteProfile,
-  Plan,
-  PatchInstructions,
-  VerificationChecklist,
-  TargetRoute,
-  Inspiration,
-} from '../mcp/contract';
-
-// Internal types for server (simplified for reference profiles)
-interface InternalRepoMetadata {
-  stack: ContractRepoMetadata['stack'];
-  hasTailwind: boolean;
-  tailwindVersion?: string;
-  hasShadcn: boolean;
-  hasStyledComponents?: boolean;
-  hasEmotion?: boolean;
-  hasDesignSystem?: boolean;
-  designSystemPath?: string;
-  srcPath: string;
-  componentsPath?: string;
-  pagesPath?: string;
-  router?: string;
-}
-
-interface InternalTasteProfile {
-  abstraction: number;
-  restraint: number;
-  density: number;
-  motion: number;
-  contrast: number;
-  narrative: number;
-  motifPreference: string[];
-  typographyLooseness: number;
-  colorTemperature: 'cool' | 'warm' | 'neutral';
-  surfaceComplexity: number;
-}
+import { analyzeCodebase, type CodebaseAnalysis } from '../analyzer';
+import { generateCode, type TasteConfig, type GeneratedCode } from '../generator';
 
 // =============================================================================
 // TOOL DEFINITIONS
@@ -67,975 +27,667 @@ interface InternalTasteProfile {
 
 const TOOLS = [
   {
-    name: 'analyze_repo_ui',
-    description: `Analyzes a repository to detect UI stack, framework, and configuration.
+    name: 'analyze_codebase',
+    description: `Analyzes a codebase to extract:
+- Component patterns (buttons, cards, surfaces, layouts)
+- Design tokens (colors, spacing, typography, shadows)
+- Tailwind class usage and conventions
+- Existing variants and props
 
-Detects:
-- Framework (React, Vue, Svelte, etc.)
-- CSS solution (Tailwind, styled-components, CSS modules)
-- Component library (shadcn/ui, Radix, Chakra)
-- Router (react-router, Next.js App Router, etc.)
-- Build tool (Vite, Next.js, CRA)
-- TypeScript usage
-- Design system patterns
+Use this FIRST before generating any code to understand the project's visual language.
 
-Returns a RepoMetadata object conforming to Visual MCP Contract v1.`,
+Input:
+- repo_path: Path to the repository root
+
+Output:
+- Full analysis including components, tokens, and patterns`,
     inputSchema: {
       type: 'object',
       properties: {
-        repoPath: {
+        repo_path: {
           type: 'string',
-          description: 'Absolute path to the repository root',
+          description: 'Absolute path to the repository',
         },
       },
-      required: ['repoPath'],
+      required: ['repo_path'],
     },
   },
   {
-    name: 'derive_taste_from_inspirations',
-    description: `Extracts visual taste profile from inspiration sources.
+    name: 'generate_component',
+    description: `Generates a React component based on:
+1. Codebase analysis (must run analyze_codebase first)
+2. Taste configuration (abstraction, density, motion, contrast, narrative)
 
-Accepts:
-- URLs to reference sites (e.g., stripe.com, linear.app)
-- Paths to screenshot images
-- Named references (linear, stripe, vercel, notion, etc.)
+Taste parameters (all 0-1):
+- abstraction: Low = concrete/literal, High = minimal/geometric
+- density: Low = spacious, High = compact
+- motion: Low = static, High = animated
+- contrast: Low = subtle, High = bold
+- narrative: Low = minimal, High = storytelling (for marketing pages)
 
-Returns a TasteProfile with:
-- abstraction (0-1): How abstract vs concrete the visual language
-- restraint (0-1): How minimal vs decorative
-- density (0-1): How packed vs spacious
-- motion (0-1): How animated vs static
-- motifPreference: Preferred motif types (dots, lines, etc.)
-- typographyLooseness (0-1): How playful vs strict the typography
-- colorTemperature: warm, cool, or neutral
-- surfaceComplexity (0-1): How layered the surfaces are`,
+Component types: button, card, layout, hero, features, cta
+
+The generated code will:
+- Match patterns found in your codebase
+- Use your existing Tailwind classes
+- Follow your component conventions`,
     inputSchema: {
       type: 'object',
       properties: {
-        inspirations: {
-          type: 'array',
-          items: {
-            type: 'object',
-            properties: {
-              type: {
-                type: 'string',
-                enum: ['url', 'screenshot', 'reference-name'],
-              },
-              value: {
-                type: 'string',
-                description: 'URL, file path, or reference name',
-              },
-              weight: {
-                type: 'number',
-                description: 'Influence weight 0-1 (default 1.0)',
-              },
-            },
-            required: ['type', 'value'],
-          },
-          description: 'Array of inspiration sources',
-        },
-      },
-      required: ['inspirations'],
-    },
-  },
-  {
-    name: 'propose_page_plan',
-    description: `Generates a visual plan for a target page/route.
-
-Creates a structured plan including:
-- Archetype selection (dashboard, landing, detail, wizard, etc.)
-- Storyboard structure (section hierarchy)
-- Motif recommendations
-- Signature block suggestions
-- Recipe application
-
-The plan follows Visual MCP Contract v1 and can be directly used
-by generate_patch to produce file modifications.`,
-    inputSchema: {
-      type: 'object',
-      properties: {
-        repoMetadata: {
+        analysis: {
           type: 'object',
-          description: 'RepoMetadata from analyze_repo_ui',
+          description: 'Output from analyze_codebase tool',
         },
-        tasteProfile: {
-          type: 'object',
-          description: 'TasteProfile from derive_taste_from_inspirations',
-        },
-        targetRoute: {
+        taste: {
           type: 'object',
           properties: {
-            path: {
-              type: 'string',
-              description: 'Route path (e.g., /dashboard)',
-            },
-            intent: {
-              type: 'string',
-              enum: ['product', 'marketing', 'docs', 'admin'],
-            },
-            audience: {
-              type: 'string',
-              description: 'Target audience (e.g., hotel-owner, developer)',
-            },
+            abstraction: { type: 'number', minimum: 0, maximum: 1 },
+            density: { type: 'number', minimum: 0, maximum: 1 },
+            motion: { type: 'number', minimum: 0, maximum: 1 },
+            contrast: { type: 'number', minimum: 0, maximum: 1 },
+            narrative: { type: 'number', minimum: 0, maximum: 1 },
           },
-          required: ['path', 'intent'],
+          required: ['abstraction', 'density', 'motion', 'contrast', 'narrative'],
         },
-        tuners: {
-          type: 'object',
-          description: 'Optional tuner overrides (abstraction, density, etc.)',
-        },
-      },
-      required: ['repoMetadata', 'tasteProfile', 'targetRoute'],
-    },
-  },
-  {
-    name: 'generate_patch',
-    description: `Generates file modification instructions from a plan.
-
-Produces PatchInstructions containing:
-- Files to create (with full content)
-- Files to modify (with search/replace blocks)
-- Files to delete (with safety checks)
-
-IMPORTANT: This tool only generates instructions, it does NOT
-apply changes automatically. The human/agent must review and
-apply the patches.
-
-All patches preserve existing functionality and only add/modify
-visual presentation. Business logic is never touched.`,
-    inputSchema: {
-      type: 'object',
-      properties: {
-        plan: {
-          type: 'object',
-          description: 'Plan from propose_page_plan',
-        },
-        repoMetadata: {
-          type: 'object',
-          description: 'RepoMetadata from analyze_repo_ui',
-        },
-        dryRun: {
-          type: 'boolean',
-          description: 'If true, only validate without generating patches',
-        },
-      },
-      required: ['plan', 'repoMetadata'],
-    },
-  },
-  {
-    name: 'verify_ui',
-    description: `Runs verification checks on the UI implementation.
-
-Executes:
-1. ui:guard - Component guardrails (sizes, spacing, accessibility)
-2. Visual baseline comparison (if baselines exist)
-3. TypeScript type checking for design system types
-
-Returns a VerificationChecklist with:
-- All checks run and their status
-- Warnings and errors
-- Screenshot comparison results (if applicable)
-- Suggestions for fixes`,
-    inputSchema: {
-      type: 'object',
-      properties: {
-        repoPath: {
+        component_type: {
           type: 'string',
-          description: 'Absolute path to the repository root',
+          enum: ['button', 'card', 'layout', 'hero', 'features', 'cta'],
+          description: 'Type of component to generate',
         },
-        routes: {
-          type: 'array',
-          items: { type: 'string' },
-          description: 'Optional: specific routes to verify',
-        },
-        updateBaselines: {
-          type: 'boolean',
-          description: 'If true, update baselines instead of comparing',
+        name: {
+          type: 'string',
+          description: 'Name for the generated component',
         },
       },
-      required: ['repoPath'],
+      required: ['analysis', 'taste', 'component_type'],
+    },
+  },
+  {
+    name: 'get_taste_from_reference',
+    description: `Get a taste configuration based on a reference brand/site.
+
+Known references:
+- linear: Clean, minimal, geometric (abstraction: 0.7, motion: 0.6)
+- stripe: Polished, gradient-heavy (abstraction: 0.5, motion: 0.7)
+- vercel: Ultra-minimal, stark contrast (abstraction: 0.8, contrast: 0.8)
+- notion: Friendly, content-focused (abstraction: 0.3, narrative: 0.6)
+- apple: Premium, spacious (abstraction: 0.6, narrative: 0.8)
+- github: Developer-focused, dense (density: 0.6, contrast: 0.6)
+- airbnb: Warm, photo-forward (narrative: 0.7, contrast: 0.5)
+
+Returns a TasteConfig that can be passed to generate_component.`,
+    inputSchema: {
+      type: 'object',
+      properties: {
+        reference: {
+          type: 'string',
+          description: 'Reference brand name (linear, stripe, vercel, etc.)',
+        },
+      },
+      required: ['reference'],
+    },
+  },
+  {
+    name: 'explain_taste',
+    description: `Explains what each taste parameter does and provides examples.
+
+Use this to understand how taste settings affect generated code:
+- abstraction: How literal vs abstract the visual language is
+- density: How spacious vs compact the layout is
+- motion: How static vs animated interactions are
+- contrast: How subtle vs bold visual hierarchy is
+- narrative: How minimal vs storytelling the content presentation is`,
+    inputSchema: {
+      type: 'object',
+      properties: {
+        parameter: {
+          type: 'string',
+          enum: ['abstraction', 'density', 'motion', 'contrast', 'narrative', 'all'],
+          description: 'Which parameter to explain',
+        },
+      },
+      required: ['parameter'],
     },
   },
 ];
 
 // =============================================================================
-// TOOL IMPLEMENTATIONS
+// TASTE REFERENCES
 // =============================================================================
 
-/**
- * Analyze repository UI stack
- */
-async function analyzeRepoUI(repoPath: string): Promise<InternalRepoMetadata> {
-  if (!existsSync(repoPath)) {
-    throw new McpError(ErrorCode.InvalidRequest, `Repository path not found: ${repoPath}`);
-  }
-
-  const packageJsonPath = join(repoPath, 'package.json');
-  if (!existsSync(packageJsonPath)) {
-    throw new McpError(ErrorCode.InvalidRequest, 'No package.json found in repository');
-  }
-
-  const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
-  const deps = { ...packageJson.dependencies, ...packageJson.devDependencies };
-
-  // Detect stack
-  const stack = deps['react'] ? 'react' : deps['vue'] ? 'vue' : deps['svelte'] ? 'svelte' : 'unknown';
-
-  // Detect CSS solution
-  const hasTailwind = !!deps['tailwindcss'];
-  const hasStyledComponents = !!deps['styled-components'];
-  const hasEmotion = !!deps['@emotion/react'];
-
-  // Detect Tailwind version
-  let tailwindVersion: string | undefined;
-  if (deps['tailwindcss']) {
-    tailwindVersion = deps['tailwindcss'].replace(/[\^~]/, '');
-  }
-
-  // Detect shadcn
-  const hasShadcn = existsSync(join(repoPath, 'components.json')) ||
-    existsSync(join(repoPath, 'src/components/ui'));
-
-  // Detect design system
-  let hasDesignSystem = false;
-  let designSystemPath: string | undefined;
-  const possiblePaths = ['src/design-system', 'src/styles', 'src/theme', 'design-system'];
-  for (const p of possiblePaths) {
-    if (existsSync(join(repoPath, p))) {
-      hasDesignSystem = true;
-      designSystemPath = p;
-      break;
-    }
-  }
-
-  return {
-    stack: stack as RepoMetadata['stack'],
-    hasTailwind,
-    tailwindVersion,
-    hasShadcn,
-    hasStyledComponents,
-    hasEmotion,
-    hasDesignSystem,
-    designSystemPath,
-    srcPath: existsSync(join(repoPath, 'src')) ? 'src' : '.',
-    componentsPath: existsSync(join(repoPath, 'src/components')) ? 'src/components' : undefined,
-    pagesPath: existsSync(join(repoPath, 'src/pages')) ? 'src/pages' : undefined,
-    router: deps['react-router-dom'] ? 'react-router' : deps['next'] ? 'next' : undefined,
-  };
-}
-
-/**
- * Known reference profiles for taste derivation
- */
-const KNOWN_REFERENCES: Record<string, InternalTasteProfile> = {
+const TASTE_REFERENCES: Record<string, TasteConfig> = {
   linear: {
     abstraction: 0.7,
-    restraint: 0.8,
     density: 0.4,
     motion: 0.6,
     contrast: 0.7,
     narrative: 0.5,
-    motifPreference: ['gradients', 'blur'],
-    typographyLooseness: 0.3,
-    colorTemperature: 'cool',
-    surfaceComplexity: 0.5,
   },
   stripe: {
     abstraction: 0.5,
-    restraint: 0.7,
     density: 0.5,
     motion: 0.7,
     contrast: 0.6,
     narrative: 0.7,
-    motifPreference: ['gradients', 'mesh'],
-    typographyLooseness: 0.4,
-    colorTemperature: 'cool',
-    surfaceComplexity: 0.6,
   },
   vercel: {
     abstraction: 0.8,
-    restraint: 0.9,
     density: 0.3,
     motion: 0.5,
     contrast: 0.8,
     narrative: 0.4,
-    motifPreference: ['lines', 'gradients'],
-    typographyLooseness: 0.2,
-    colorTemperature: 'neutral',
-    surfaceComplexity: 0.3,
   },
   notion: {
     abstraction: 0.3,
-    restraint: 0.6,
     density: 0.6,
     motion: 0.3,
     contrast: 0.5,
     narrative: 0.6,
-    motifPreference: ['illustrations'],
-    typographyLooseness: 0.5,
-    colorTemperature: 'warm',
-    surfaceComplexity: 0.4,
   },
   figma: {
     abstraction: 0.4,
-    restraint: 0.5,
     density: 0.5,
     motion: 0.6,
     contrast: 0.5,
     narrative: 0.5,
-    motifPreference: ['illustrations', 'icons'],
-    typographyLooseness: 0.4,
-    colorTemperature: 'warm',
-    surfaceComplexity: 0.5,
   },
   apple: {
     abstraction: 0.6,
-    restraint: 0.8,
     density: 0.3,
     motion: 0.7,
     contrast: 0.7,
     narrative: 0.8,
-    motifPreference: ['photography', 'gradients'],
-    typographyLooseness: 0.2,
-    colorTemperature: 'neutral',
-    surfaceComplexity: 0.4,
   },
   github: {
     abstraction: 0.4,
-    restraint: 0.7,
     density: 0.6,
     motion: 0.3,
     contrast: 0.6,
     narrative: 0.4,
-    motifPreference: ['icons', 'illustrations'],
-    typographyLooseness: 0.3,
-    colorTemperature: 'neutral',
-    surfaceComplexity: 0.3,
   },
   airbnb: {
-    abstraction: 0.3,
-    restraint: 0.4,
-    density: 0.5,
+    abstraction: 0.4,
+    density: 0.4,
     motion: 0.5,
     contrast: 0.5,
     narrative: 0.7,
-    motifPreference: ['photography', 'illustrations'],
-    typographyLooseness: 0.5,
-    colorTemperature: 'warm',
-    surfaceComplexity: 0.5,
   },
   chronicle: {
-    abstraction: 0.7,
-    restraint: 0.6,
+    abstraction: 0.6,
     density: 0.4,
-    motion: 0.6,
-    contrast: 0.7,
-    narrative: 0.5,
-    motifPreference: ['dots', 'lines', 'gradients'],
-    typographyLooseness: 0.3,
-    colorTemperature: 'cool',
-    surfaceComplexity: 0.6,
+    motion: 0.5,
+    contrast: 0.6,
+    narrative: 0.6,
   },
   raycast: {
     abstraction: 0.6,
-    restraint: 0.8,
     density: 0.5,
-    motion: 0.5,
+    motion: 0.7,
     contrast: 0.7,
     narrative: 0.4,
-    motifPreference: ['blur', 'gradients'],
-    typographyLooseness: 0.3,
-    colorTemperature: 'cool',
-    surfaceComplexity: 0.5,
   },
 };
 
-/**
- * Derive taste profile from inspirations
- */
-async function deriveTasteFromInspirations(
-  inspirations: Array<{ type: string; value: string; weight?: number }>
-): Promise<TasteProfile> {
-  if (!inspirations || inspirations.length === 0) {
-    throw new McpError(ErrorCode.InvalidRequest, 'At least one inspiration required');
-  }
+// =============================================================================
+// TASTE EXPLANATIONS
+// =============================================================================
 
-  const profiles: Array<{ profile: TasteProfile; weight: number }> = [];
+const TASTE_EXPLANATIONS = {
+  abstraction: {
+    name: 'Abstraction',
+    description: 'How literal vs geometric the visual language is',
+    low: {
+      value: '0.0 - 0.3',
+      meaning: 'Concrete, literal, recognizable',
+      examples: [
+        'Solid buttons with clear borders',
+        'Standard icons (✓ ✗ →)',
+        'Explicit labels and text',
+        'Familiar UI patterns',
+      ],
+      tailwind: 'bg-primary text-white rounded-md shadow-md',
+    },
+    medium: {
+      value: '0.3 - 0.7',
+      meaning: 'Balanced, refined',
+      examples: [
+        'Soft shadows, subtle gradients',
+        'Mixed iconography',
+        'Some visual interest',
+      ],
+      tailwind: 'bg-primary/90 rounded-lg shadow-sm',
+    },
+    high: {
+      value: '0.7 - 1.0',
+      meaning: 'Minimal, geometric, artistic',
+      examples: [
+        'Ghost buttons, wire outlines',
+        'Abstract shapes (○ □ △)',
+        'Relies on whitespace and composition',
+        'Almost invisible borders',
+      ],
+      tailwind: 'border border-primary/30 text-primary rounded-full',
+    },
+  },
+  density: {
+    name: 'Density',
+    description: 'How spacious vs compact the layout is',
+    low: {
+      value: '0.0 - 0.3',
+      meaning: 'Spacious, breathing room',
+      examples: [
+        'Large padding (p-8 to p-12)',
+        'Wide gaps between elements',
+        'Generous line height',
+        'Marketing pages, hero sections',
+      ],
+      tailwind: 'p-8 md:p-12 space-y-12 gap-8 leading-relaxed',
+    },
+    medium: {
+      value: '0.3 - 0.7',
+      meaning: 'Balanced spacing',
+      examples: [
+        'Standard padding (p-6)',
+        'Comfortable gaps',
+        'Normal line height',
+      ],
+      tailwind: 'p-6 space-y-8 gap-6 leading-normal',
+    },
+    high: {
+      value: '0.7 - 1.0',
+      meaning: 'Compact, information-dense',
+      examples: [
+        'Tight padding (p-4)',
+        'Small gaps',
+        'Tight line height',
+        'Dashboards, data tables',
+      ],
+      tailwind: 'p-4 space-y-4 gap-3 leading-tight',
+    },
+  },
+  motion: {
+    name: 'Motion',
+    description: 'How static vs animated interactions are',
+    low: {
+      value: '0.0 - 0.3',
+      meaning: 'Nearly static, instant',
+      examples: [
+        'No hover effects',
+        'Instant state changes',
+        'No entrance animations',
+        'Accessibility-friendly',
+      ],
+      tailwind: 'duration-0',
+    },
+    medium: {
+      value: '0.3 - 0.7',
+      meaning: 'Subtle animations',
+      examples: [
+        'Quick transitions (200ms)',
+        'Gentle hover scale',
+        'Fade-in entrance',
+      ],
+      tailwind: 'transition-all duration-200 hover:scale-[1.02]',
+    },
+    high: {
+      value: '0.7 - 1.0',
+      meaning: 'Rich, expressive motion',
+      examples: [
+        'Longer transitions (300ms+)',
+        'Bouncy easing',
+        'Staggered entrances',
+        'Micro-interactions',
+      ],
+      tailwind: 'transition-all duration-300 hover:scale-105 hover:-translate-y-0.5',
+    },
+  },
+  contrast: {
+    name: 'Contrast',
+    description: 'How subtle vs bold the visual hierarchy is',
+    low: {
+      value: '0.0 - 0.3',
+      meaning: 'Subtle, soft',
+      examples: [
+        'Gray-600 text',
+        'Light borders',
+        'Small shadows',
+        'Gentle dividers',
+      ],
+      tailwind: 'text-gray-600 border-gray-100 shadow-sm',
+    },
+    medium: {
+      value: '0.3 - 0.7',
+      meaning: 'Balanced hierarchy',
+      examples: [
+        'Gray-800 text',
+        'Visible borders',
+        'Medium shadows',
+      ],
+      tailwind: 'text-gray-800 border-gray-200 shadow-md',
+    },
+    high: {
+      value: '0.7 - 1.0',
+      meaning: 'Bold, stark',
+      examples: [
+        'Near-black text',
+        'Strong borders',
+        'Prominent shadows',
+        'High-contrast dark mode',
+      ],
+      tailwind: 'text-gray-950 border-gray-300 shadow-lg',
+    },
+  },
+  narrative: {
+    name: 'Narrative',
+    description: 'How minimal vs storytelling the content presentation is',
+    low: {
+      value: '0.0 - 0.3',
+      meaning: 'Minimal, functional',
+      examples: [
+        'Small hero sections',
+        'Direct CTAs',
+        'No decorative elements',
+        'Product-focused',
+      ],
+      tailwind: 'min-h-[40vh] text-left',
+    },
+    medium: {
+      value: '0.3 - 0.7',
+      meaning: 'Balanced presentation',
+      examples: [
+        'Medium hero',
+        'Some storytelling',
+        'Feature highlights',
+      ],
+      tailwind: 'min-h-[60vh] text-center',
+    },
+    high: {
+      value: '0.7 - 1.0',
+      meaning: 'Storytelling, immersive',
+      examples: [
+        'Full-screen hero',
+        'Emotional imagery',
+        'Brand story sections',
+        'Marketing landing pages',
+      ],
+      tailwind: 'min-h-[80vh] text-center py-20',
+    },
+  },
+};
 
-  for (const insp of inspirations) {
-    const weight = insp.weight ?? 1.0;
+// =============================================================================
+// SERVER IMPLEMENTATION
+// =============================================================================
 
-    if (insp.type === 'reference-name' || insp.type === 'reference') {
-      const ref = KNOWN_REFERENCES[insp.value.toLowerCase()];
-      if (ref) {
-        profiles.push({ profile: ref, weight });
-      } else {
-        // Unknown reference - use neutral defaults
-        profiles.push({
-          profile: {
-            abstraction: 0.5,
-            restraint: 0.5,
-            density: 0.5,
-            motion: 0.5,
-            contrast: 0.5,
-            narrative: 0.5,
-            motifPreference: ['gradients'],
-            typographyLooseness: 0.5,
-            colorTemperature: 'neutral',
-            surfaceComplexity: 0.5,
-          },
-          weight: weight * 0.5,
-        });
-      }
-    } else if (insp.type === 'url') {
-      // Extract reference name from URL
-      const domain = insp.value.replace(/^https?:\/\//, '').split('/')[0];
-      const name = domain.replace(/\..*$/, '').toLowerCase();
+class TasteEngineServer {
+  private server: Server;
+  private analysisCache: Map<string, CodebaseAnalysis> = new Map();
 
-      if (KNOWN_REFERENCES[name]) {
-        profiles.push({ profile: KNOWN_REFERENCES[name], weight });
-      } else {
-        // URL not in known references - apply heuristics
-        profiles.push({
-          profile: {
-            abstraction: 0.5,
-            restraint: 0.5,
-            density: 0.5,
-            motion: 0.5,
-            contrast: 0.5,
-            narrative: 0.5,
-            motifPreference: ['gradients'],
-            typographyLooseness: 0.5,
-            colorTemperature: 'neutral',
-            surfaceComplexity: 0.5,
-          },
-          weight: weight * 0.3,
-        });
-      }
-    } else if (insp.type === 'screenshot') {
-      // Screenshot analysis - would use image analysis in production
-      profiles.push({
-        profile: {
-          abstraction: 0.6,
-          restraint: 0.5,
-          density: 0.5,
-          motion: 0.4,
-          contrast: 0.5,
-          narrative: 0.5,
-          motifPreference: ['gradients'],
-          typographyLooseness: 0.5,
-          colorTemperature: 'neutral',
-          surfaceComplexity: 0.5,
+  constructor() {
+    this.server = new Server(
+      {
+        name: 'taste-engine',
+        version: '0.2.0',
+      },
+      {
+        capabilities: {
+          tools: {},
         },
-        weight: weight * 0.5,
-      });
-    }
-  }
-
-  // Weighted average of all profiles
-  const totalWeight = profiles.reduce((sum, p) => sum + p.weight, 0);
-
-  const blended: TasteProfile = {
-    abstraction: 0,
-    restraint: 0,
-    density: 0,
-    motion: 0,
-    contrast: 0,
-    narrative: 0,
-    motifPreference: [],
-    typographyLooseness: 0,
-    colorTemperature: 'neutral',
-    surfaceComplexity: 0,
-  };
-
-  // Blend numeric values
-  for (const { profile, weight } of profiles) {
-    const w = weight / totalWeight;
-    blended.abstraction += profile.abstraction * w;
-    blended.restraint += profile.restraint * w;
-    blended.density += profile.density * w;
-    blended.motion += profile.motion * w;
-    blended.contrast += profile.contrast * w;
-    blended.narrative += profile.narrative * w;
-    blended.typographyLooseness += profile.typographyLooseness * w;
-    blended.surfaceComplexity += profile.surfaceComplexity * w;
-  }
-
-  // Collect motif preferences (unique)
-  const motifSet = new Set<string>();
-  for (const { profile } of profiles) {
-    profile.motifPreference.forEach(m => motifSet.add(m));
-  }
-  blended.motifPreference = Array.from(motifSet);
-
-  // Determine color temperature (majority vote)
-  const tempCounts = { warm: 0, cool: 0, neutral: 0 };
-  for (const { profile, weight } of profiles) {
-    tempCounts[profile.colorTemperature] += weight;
-  }
-  blended.colorTemperature =
-    tempCounts.warm > tempCounts.cool && tempCounts.warm > tempCounts.neutral ? 'warm' :
-    tempCounts.cool > tempCounts.neutral ? 'cool' : 'neutral';
-
-  return blended;
-}
-
-/**
- * Page archetypes with default recipes
- */
-const PAGE_ARCHETYPES = {
-  dashboard: {
-    sections: ['header', 'metrics', 'charts', 'tables', 'actions'],
-    motifs: ['dots', 'lines'],
-    signatureBlocks: ['MetricRibbon', 'ChartCard', 'DataTable'],
-  },
-  landing: {
-    sections: ['hero', 'features', 'social-proof', 'pricing', 'cta', 'footer'],
-    motifs: ['gradients', 'blur', 'particles'],
-    signatureBlocks: ['HeroSection', 'FeatureGrid', 'TestimonialCarousel', 'PricingTable'],
-  },
-  detail: {
-    sections: ['header', 'content', 'sidebar', 'actions'],
-    motifs: ['lines'],
-    signatureBlocks: ['DetailHeader', 'ContentPane', 'ActionPanel'],
-  },
-  wizard: {
-    sections: ['stepper', 'form', 'navigation'],
-    motifs: ['lines', 'progress'],
-    signatureBlocks: ['StepIndicator', 'FormSection', 'NavigationBar'],
-  },
-  settings: {
-    sections: ['navigation', 'form', 'actions'],
-    motifs: ['lines'],
-    signatureBlocks: ['SettingsNav', 'SettingsForm', 'SaveBar'],
-  },
-  docs: {
-    sections: ['navigation', 'content', 'toc'],
-    motifs: ['lines'],
-    signatureBlocks: ['DocNav', 'DocContent', 'TableOfContents'],
-  },
-};
-
-/**
- * Propose a page plan
- */
-async function proposePagePlan(
-  repoMetadata: RepoMetadata,
-  tasteProfile: TasteProfile,
-  targetRoute: TargetRoute,
-  tuners?: Record<string, number>
-): Promise<Plan> {
-  // Determine archetype from intent and path
-  let archetype: keyof typeof PAGE_ARCHETYPES = 'dashboard';
-
-  if (targetRoute.intent === 'marketing') {
-    archetype = 'landing';
-  } else if (targetRoute.path.includes('settings')) {
-    archetype = 'settings';
-  } else if (targetRoute.path.includes('wizard') || targetRoute.path.includes('onboard')) {
-    archetype = 'wizard';
-  } else if (targetRoute.path.includes('docs')) {
-    archetype = 'docs';
-  } else if (targetRoute.path.match(/\/[^/]+\/[^/]+$/)) {
-    archetype = 'detail';
-  }
-
-  const archetypeConfig = PAGE_ARCHETYPES[archetype];
-
-  // Select motifs based on taste profile
-  const selectedMotifs = archetypeConfig.motifs.filter(motif =>
-    tasteProfile.motifPreference.includes(motif) ||
-    tasteProfile.abstraction > 0.5
-  );
-
-  // Apply tuners to taste profile
-  const appliedTaste = { ...tasteProfile };
-  if (tuners) {
-    if (tuners.abstraction !== undefined) appliedTaste.abstraction = tuners.abstraction;
-    if (tuners.density !== undefined) appliedTaste.density = tuners.density;
-    if (tuners.motion !== undefined) appliedTaste.motion = tuners.motion;
-    if (tuners.contrast !== undefined) appliedTaste.contrast = tuners.contrast;
-    if (tuners.narrative !== undefined) appliedTaste.narrative = tuners.narrative;
-  }
-
-  // Generate section recommendations
-  const sections = archetypeConfig.sections.map((section, index) => ({
-    id: `section-${index}`,
-    type: section,
-    motif: selectedMotifs[index % selectedMotifs.length] || 'none',
-    components: archetypeConfig.signatureBlocks.filter(block =>
-      block.toLowerCase().includes(section) || index === 0
-    ),
-    recipe: {
-      density: appliedTaste.density,
-      spacing: appliedTaste.density < 0.5 ? 'spacious' : 'compact',
-      motion: appliedTaste.motion > 0.5 ? 'enabled' : 'minimal',
-    },
-  }));
-
-  return {
-    targetRoute: targetRoute.path,
-    archetype,
-    intent: targetRoute.intent,
-    audience: targetRoute.audience,
-    sections,
-    theme: {
-      colorTemperature: appliedTaste.colorTemperature,
-      surfaceComplexity: appliedTaste.surfaceComplexity,
-      typographyLooseness: appliedTaste.typographyLooseness,
-    },
-    motifs: selectedMotifs,
-    signatureBlocks: archetypeConfig.signatureBlocks,
-    appliedTuners: tuners as Record<string, number> | undefined,
-    confidence: 0.8,
-    reasoning: `Selected ${archetype} archetype for ${targetRoute.intent} intent. ` +
-      `Applied ${selectedMotifs.join(', ')} motifs based on taste profile with ` +
-      `${(appliedTaste.abstraction * 100).toFixed(0)}% abstraction.`,
-  };
-}
-
-/**
- * Generate patch instructions from a plan
- */
-async function generatePatch(
-  plan: Plan,
-  repoMetadata: RepoMetadata,
-  dryRun: boolean = false
-): Promise<PatchInstructions> {
-  const instructions: PatchInstructions = {
-    patches: [],
-    affectedFiles: [],
-  };
-
-  // Determine file paths based on repo structure
-  const srcPath = repoMetadata.srcPath || 'src';
-  const ext = 'tsx';
-
-  // Route path to file path
-  const routePath = plan.targetRoute.replace(/^\//, '').replace(/\//g, '-') || 'index';
-  const pageDir = `${srcPath}/pages/${routePath}`;
-  const pageFile = `${pageDir}/index.${ext}`;
-
-  // Generate page component
-  const pageContent = generatePageComponent(plan, repoMetadata);
-
-  instructions.patches.push({
-    file: pageFile,
-    operation: 'create',
-    content: pageContent,
-    description: `Create ${plan.archetype} page for ${plan.targetRoute}`,
-  });
-  instructions.affectedFiles.push(pageFile);
-
-  // Generate section components
-  for (const section of plan.sections) {
-    const sectionFile = `${pageDir}/${capitalizeFirst(section.type)}Section.${ext}`;
-    const sectionContent = generateSectionComponent(section, plan, repoMetadata);
-
-    instructions.patches.push({
-      file: sectionFile,
-      operation: 'create',
-      content: sectionContent,
-      description: `Create ${section.type} section component`,
-    });
-    instructions.affectedFiles.push(sectionFile);
-  }
-
-  if (dryRun) {
-    // Add a marker that this is a dry run
-    instructions.patches = instructions.patches.map(p => ({
-      ...p,
-      description: `[DRY RUN] ${p.description}`,
-    }));
-  }
-
-  return instructions;
-}
-
-/**
- * Generate page component code
- */
-function generatePageComponent(plan: Plan, repo: RepoMetadata): string {
-  const imports = plan.sections.map(s =>
-    `import { ${capitalizeFirst(s.type)}Section } from './${capitalizeFirst(s.type)}Section';`
-  ).join('\n');
-
-  const sections = plan.sections.map(s =>
-    `        <${capitalizeFirst(s.type)}Section />`
-  ).join('\n');
-
-  return `/**
- * ${capitalizeFirst(plan.archetype)} Page - ${plan.targetRoute}
- *
- * Generated by Visual MCP Server
- * Intent: ${plan.intent}
- * Audience: ${plan.audience || 'general'}
- *
- * @generated Visual MCP Contract v1
- */
-
-import React from 'react';
-${imports}
-import { cn } from '@/lib/utils';
-
-export default function ${capitalizeFirst(plan.targetRoute.replace(/^\//, '').replace(/\//g, ''))}Page() {
-  return (
-    <div className={cn(
-      "min-h-screen bg-background",
-      "${plan.theme.colorTemperature === 'warm' ? 'warm-palette' : plan.theme.colorTemperature === 'cool' ? 'cool-palette' : ''}"
-    )}>
-      <main className="container mx-auto px-4 py-8">
-${sections}
-      </main>
-    </div>
-  );
-}
-`;
-}
-
-/**
- * Generate section component code
- */
-function generateSectionComponent(
-  section: Plan['sections'][0],
-  plan: Plan,
-  repo: RepoMetadata
-): string {
-  const motifImport = section.motif !== 'none'
-    ? `import { MotifLayer } from '@/design-system/theme';`
-    : '';
-
-  const motifWrapper = section.motif !== 'none'
-    ? `      <MotifLayer type="${section.motif}" intensity={0.3} />\n`
-    : '';
-
-  return `/**
- * ${capitalizeFirst(section.type)} Section
- *
- * Part of ${plan.archetype} page layout.
- * Motif: ${section.motif}
- * Density: ${section.recipe.density}
- *
- * @generated Visual MCP Contract v1
- */
-
-import React from 'react';
-${motifImport}
-import { cn } from '@/lib/utils';
-
-interface ${capitalizeFirst(section.type)}SectionProps {
-  className?: string;
-}
-
-export function ${capitalizeFirst(section.type)}Section({ className }: ${capitalizeFirst(section.type)}SectionProps) {
-  return (
-    <section className={cn(
-      "relative py-${section.recipe.spacing === 'spacious' ? '16' : '8'}",
-      "${section.recipe.motion === 'enabled' ? 'motion-safe:animate-in' : ''}",
-      className
-    )}>
-${motifWrapper}      <div className="relative z-10">
-        {/* TODO: Add ${section.type} content */}
-        <h2 className="text-2xl font-semibold">${capitalizeFirst(section.type)}</h2>
-      </div>
-    </section>
-  );
-}
-`;
-}
-
-/**
- * Verify UI implementation
- */
-async function verifyUI(
-  repoPath: string,
-  routes?: string[],
-  updateBaselines?: boolean
-): Promise<VerificationChecklist> {
-  const checks: VerificationChecklist['checks'] = [];
-
-  // Run ui:guard
-  try {
-    const guardOutput = execSync('npm run ui:guard 2>&1', {
-      cwd: repoPath,
-      encoding: 'utf-8',
-      timeout: 60000,
-    });
-    checks.push({
-      name: 'ui:guard',
-      status: 'pass',
-      message: 'Component guardrails passed',
-      details: guardOutput,
-    });
-  } catch (error: unknown) {
-    const err = error as { stdout?: string; message?: string };
-    checks.push({
-      name: 'ui:guard',
-      status: 'fail',
-      message: 'Component guardrails failed',
-      details: err.stdout || err.message,
-    });
-  }
-
-  // Run visual comparison or update
-  const visualCommand = updateBaselines ? 'npm run ui:shots' : 'npm run ui:diff';
-  try {
-    const visualOutput = execSync(`${visualCommand} 2>&1`, {
-      cwd: repoPath,
-      encoding: 'utf-8',
-      timeout: 120000,
-    });
-    checks.push({
-      name: 'visual-regression',
-      status: 'pass',
-      message: updateBaselines ? 'Baselines updated' : 'Visual comparison passed',
-      details: visualOutput,
-    });
-  } catch (error: unknown) {
-    const err = error as { stdout?: string; message?: string };
-    checks.push({
-      name: 'visual-regression',
-      status: updateBaselines ? 'warn' : 'fail',
-      message: updateBaselines ? 'Baseline update had issues' : 'Visual regression detected',
-      details: err.stdout || err.message,
-    });
-  }
-
-  // TypeScript check
-  if (existsSync(join(repoPath, 'tsconfig.json'))) {
-    try {
-      execSync('npx tsc --noEmit 2>&1', {
-        cwd: repoPath,
-        encoding: 'utf-8',
-        timeout: 120000,
-      });
-      checks.push({
-        name: 'typescript',
-        status: 'pass',
-        message: 'TypeScript compilation successful',
-      });
-    } catch (error: unknown) {
-      const err = error as { stdout?: string; message?: string };
-      checks.push({
-        name: 'typescript',
-        status: 'warn',
-        message: 'TypeScript errors found',
-        details: err.stdout || err.message,
-      });
-    }
-  }
-
-  const passCount = checks.filter(c => c.status === 'pass').length;
-  const failCount = checks.filter(c => c.status === 'fail').length;
-
-  return {
-    checks,
-    summary: {
-      total: checks.length,
-      passed: passCount,
-      failed: failCount,
-      warnings: checks.filter(c => c.status === 'warn').length,
-    },
-    overallStatus: failCount > 0 ? 'fail' : passCount === checks.length ? 'pass' : 'warn',
-  };
-}
-
-// =============================================================================
-// UTILITIES
-// =============================================================================
-
-function capitalizeFirst(str: string): string {
-  return str.charAt(0).toUpperCase() + str.slice(1);
-}
-
-// =============================================================================
-// MCP SERVER SETUP
-// =============================================================================
-
-const server = new Server(
-  {
-    name: 'taste-engine-mcp',
-    version: '1.0.0',
-  },
-  {
-    capabilities: {
-      tools: {},
-    },
-  }
-);
-
-// List available tools
-server.setRequestHandler(ListToolsRequestSchema, async () => ({
-  tools: TOOLS,
-}));
-
-// Handle tool calls
-server.setRequestHandler(CallToolRequestSchema, async (request) => {
-  const { name, arguments: args } = request.params;
-
-  try {
-    switch (name) {
-      case 'analyze_repo_ui': {
-        const result = await analyzeRepoUI(args.repoPath as string);
-        return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
       }
-
-      case 'derive_taste_from_inspirations': {
-        const result = await deriveTasteFromInspirations(
-          args.inspirations as Array<{ type: string; value: string; weight?: number }>
-        );
-        return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
-      }
-
-      case 'propose_page_plan': {
-        const result = await proposePagePlan(
-          args.repoMetadata as RepoMetadata,
-          args.tasteProfile as TasteProfile,
-          args.targetRoute as TargetRoute,
-          args.tuners as Record<string, number>
-        );
-        return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
-      }
-
-      case 'generate_patch': {
-        const result = await generatePatch(
-          args.plan as Plan,
-          args.repoMetadata as RepoMetadata,
-          args.dryRun as boolean
-        );
-        return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
-      }
-
-      case 'verify_ui': {
-        const result = await verifyUI(
-          args.repoPath as string,
-          args.routes as string[],
-          args.updateBaselines as boolean
-        );
-        return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
-      }
-
-      default:
-        throw new McpError(ErrorCode.MethodNotFound, `Unknown tool: ${name}`);
-    }
-  } catch (error) {
-    if (error instanceof McpError) throw error;
-    throw new McpError(
-      ErrorCode.InternalError,
-      error instanceof Error ? error.message : 'Unknown error'
     );
-  }
-});
 
-// Start the server
-async function main() {
-  const transport = new StdioServerTransport();
-  await server.connect(transport);
-  console.error('Taste Engine MCP Server running on stdio');
+    this.setupHandlers();
+  }
+
+  private setupHandlers() {
+    // List tools
+    this.server.setRequestHandler(ListToolsRequestSchema, async () => ({
+      tools: TOOLS,
+    }));
+
+    // Call tools
+    this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
+      const { name, arguments: args } = request.params;
+
+      try {
+        switch (name) {
+          case 'analyze_codebase':
+            return await this.handleAnalyzeCodebase(args as { repo_path: string });
+
+          case 'generate_component':
+            return await this.handleGenerateComponent(args as {
+              analysis: CodebaseAnalysis;
+              taste: TasteConfig;
+              component_type: 'button' | 'card' | 'layout' | 'hero' | 'features' | 'cta';
+              name?: string;
+            });
+
+          case 'get_taste_from_reference':
+            return this.handleGetTasteFromReference(args as { reference: string });
+
+          case 'explain_taste':
+            return this.handleExplainTaste(args as { parameter: string });
+
+          default:
+            throw new McpError(ErrorCode.MethodNotFound, `Unknown tool: ${name}`);
+        }
+      } catch (error) {
+        if (error instanceof McpError) throw error;
+        throw new McpError(
+          ErrorCode.InternalError,
+          error instanceof Error ? error.message : 'Unknown error'
+        );
+      }
+    });
+  }
+
+  private async handleAnalyzeCodebase(args: { repo_path: string }) {
+    const { repo_path } = args;
+
+    if (!existsSync(repo_path)) {
+      throw new McpError(ErrorCode.InvalidRequest, `Path not found: ${repo_path}`);
+    }
+
+    // Check cache
+    if (this.analysisCache.has(repo_path)) {
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(this.analysisCache.get(repo_path), null, 2),
+          },
+        ],
+      };
+    }
+
+    // Run analysis
+    const analysis = await analyzeCodebase(repo_path);
+
+    // Cache result
+    this.analysisCache.set(repo_path, analysis);
+
+    return {
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify(analysis, null, 2),
+        },
+      ],
+    };
+  }
+
+  private async handleGenerateComponent(args: {
+    analysis: CodebaseAnalysis;
+    taste: TasteConfig;
+    component_type: 'button' | 'card' | 'layout' | 'hero' | 'features' | 'cta';
+    name?: string;
+  }) {
+    const { analysis, taste, component_type, name } = args;
+
+    // Validate taste values
+    for (const [key, value] of Object.entries(taste)) {
+      if (typeof value !== 'number' || value < 0 || value > 1) {
+        throw new McpError(
+          ErrorCode.InvalidRequest,
+          `Invalid taste.${key}: must be a number between 0 and 1`
+        );
+      }
+    }
+
+    // Generate code
+    const result: GeneratedCode = generateCode(analysis, taste, component_type, name);
+
+    return {
+      content: [
+        {
+          type: 'text',
+          text: `## Generated ${component_type} Component${name ? ` (${name})` : ''}
+
+### Explanation
+${result.explanation}
+
+### Code
+\`\`\`tsx
+${result.code}
+\`\`\`
+
+### Dependencies
+${result.dependencies.length > 0 ? result.dependencies.join(', ') : 'None'}
+
+### Required Imports
+${result.imports.join('\n')}`,
+        },
+      ],
+    };
+  }
+
+  private handleGetTasteFromReference(args: { reference: string }) {
+    const { reference } = args;
+    const refLower = reference.toLowerCase();
+
+    const taste = TASTE_REFERENCES[refLower];
+
+    if (!taste) {
+      const available = Object.keys(TASTE_REFERENCES).join(', ');
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Unknown reference: "${reference}"
+
+Available references: ${available}
+
+You can also create a custom taste config with values 0-1 for:
+- abstraction
+- density
+- motion
+- contrast
+- narrative`,
+          },
+        ],
+      };
+    }
+
+    return {
+      content: [
+        {
+          type: 'text',
+          text: `## ${reference.charAt(0).toUpperCase() + reference.slice(1)} Taste Profile
+
+\`\`\`json
+${JSON.stringify(taste, null, 2)}
+\`\`\`
+
+### Characteristics
+- **Abstraction (${taste.abstraction})**: ${taste.abstraction > 0.5 ? 'Minimal, geometric' : 'Concrete, recognizable'}
+- **Density (${taste.density})**: ${taste.density > 0.5 ? 'Compact' : 'Spacious'}
+- **Motion (${taste.motion})**: ${taste.motion > 0.5 ? 'Animated' : 'Subtle/static'}
+- **Contrast (${taste.contrast})**: ${taste.contrast > 0.5 ? 'Bold hierarchy' : 'Soft, subtle'}
+- **Narrative (${taste.narrative})**: ${taste.narrative > 0.5 ? 'Storytelling' : 'Functional'}
+
+Use this with \`generate_component\` to create ${reference}-inspired components.`,
+          },
+        ],
+      };
+  }
+
+  private handleExplainTaste(args: { parameter: string }) {
+    const { parameter } = args;
+
+    if (parameter === 'all') {
+      const allExplanations = Object.entries(TASTE_EXPLANATIONS)
+        .map(([key, exp]) => this.formatExplanation(key, exp))
+        .join('\n\n---\n\n');
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `# Taste Parameters Guide\n\n${allExplanations}`,
+          },
+        ],
+      };
+    }
+
+    const explanation = TASTE_EXPLANATIONS[parameter as keyof typeof TASTE_EXPLANATIONS];
+
+    if (!explanation) {
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Unknown parameter: "${parameter}"
+
+Available parameters: abstraction, density, motion, contrast, narrative, all`,
+          },
+        ],
+      };
+    }
+
+    return {
+      content: [
+        {
+          type: 'text',
+          text: this.formatExplanation(parameter, explanation),
+        },
+      ],
+    };
+  }
+
+  private formatExplanation(key: string, exp: typeof TASTE_EXPLANATIONS.abstraction): string {
+    return `## ${exp.name}
+
+${exp.description}
+
+### Low (${exp.low.value}) - ${exp.low.meaning}
+${exp.low.examples.map(e => `- ${e}`).join('\n')}
+\`\`\`tailwind
+${exp.low.tailwind}
+\`\`\`
+
+### Medium (${exp.medium.value}) - ${exp.medium.meaning}
+${exp.medium.examples.map(e => `- ${e}`).join('\n')}
+\`\`\`tailwind
+${exp.medium.tailwind}
+\`\`\`
+
+### High (${exp.high.value}) - ${exp.high.meaning}
+${exp.high.examples.map(e => `- ${e}`).join('\n')}
+\`\`\`tailwind
+${exp.high.tailwind}
+\`\`\``;
+  }
+
+  async run() {
+    const transport = new StdioServerTransport();
+    await this.server.connect(transport);
+    console.error('Taste Engine MCP server running on stdio');
+  }
 }
 
-main().catch(console.error);
+// =============================================================================
+// MAIN
+// =============================================================================
 
-// Export for testing
-export { analyzeRepoUI, deriveTasteFromInspirations, proposePagePlan, generatePatch, verifyUI };
-export { KNOWN_REFERENCES, PAGE_ARCHETYPES };
+const server = new TasteEngineServer();
+server.run().catch(console.error);

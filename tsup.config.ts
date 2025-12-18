@@ -33,11 +33,13 @@ export default defineConfig([
     treeshake: true,
     platform: 'node',
     target: 'node18',
+    noExternal: [/.*/],  // Bundle everything
     external: ['@modelcontextprotocol/sdk'],
     esbuildOptions(options) {
       options.banner = {
         js: '#!/usr/bin/env node\n/* Taste Engine MCP Server */',
       };
+      options.loader = { '.ts': 'ts' };
     },
   },
 ]);

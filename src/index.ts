@@ -83,3 +83,24 @@ export {
   DEFAULT_TUNERS as MCP_DEFAULT_TUNERS,
   CURRENT_CONTRACT_VERSION,
 } from './mcp/contract';
+
+// Analyzer
+export type {
+  CodebaseAnalysis,
+  ComponentPattern,
+  DesignTokens,
+  ButtonPattern,
+  CardPattern,
+  SurfacePattern,
+} from './analyzer';
+
+export { analyzeCodebase, CodebaseAnalyzer } from './analyzer';
+
+// Generator
+export type {
+  TasteConfig,
+  GeneratedCode,
+  GenerationContext,
+} from './generator';
+
+export { generateCode, createGenerator, CodeGenerator } from './generator';
