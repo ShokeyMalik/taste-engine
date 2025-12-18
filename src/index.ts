@@ -202,3 +202,51 @@ export {
   getDesignGuidelines,
   createTasteEngineContext,
 } from './ux-scanner';
+
+// Visual Assets Module (v0.5.0)
+export type {
+  // Placeholder types
+  PlaceholderType,
+  PlaceholderStyle,
+  PlaceholderOptions,
+  PlaceholderResult,
+
+  // Animation types
+  AnimationLibrary,
+  AnimationEffect,
+  AnimationTiming,
+  AnimationOptions,
+  AnimationResult,
+
+  // SVG types
+  SVGOptimizeOptions,
+  SVGOptimizeResult,
+  SVGRecommendation,
+
+  // Pattern types
+  PatternType,
+  PatternOptions,
+  PatternResult,
+} from './visual-assets';
+
+export {
+  // Placeholder generation
+  generatePlaceholder,
+  PlaceholderGenerator,
+
+  // Animation code generation
+  generateAnimation,
+  AnimationRecipeGenerator,
+
+  // SVG optimization
+  optimizeSVG,
+  analyzeSVG,
+  validateSVG,
+  SVGOptimizer,
+
+  // Pattern generation
+  generatePattern,
+  getPatternCSS,
+  getAvailablePatternTypes,
+  PatternGenerator,
+} from './visual-assets';

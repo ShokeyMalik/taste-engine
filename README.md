@@ -6,9 +6,16 @@
 
 **The Solution**: Taste Engine is a design intelligence layer that understands *context* (is this a dashboard or a marketing page?), *taste* (what should this feel like?), and applies *recipes* (how should components behave?) to produce distinctive, polished UIs.
 
-## What's New in v0.4.0
+## What's New in v0.5.0
 
-### UX Context Scanner (NEW!)
+### Visual Assets Module (NEW!)
+Context-aware visual asset generation - placeholders, animations, SVG optimization:
+- **Placeholder Images**: Photography, gradients, patterns with industry context
+- **Animation Code**: Framer Motion, GSAP, CSS, Tailwind - copy-paste ready
+- **SVG Optimizer**: Pure TypeScript, no dependencies, accessibility checks
+- **Pattern Generator**: 14 SVG patterns for backgrounds
+
+### UX Context Scanner (v0.4.0)
 Automatically scan your codebase to understand WHO uses your product and WHAT they need:
 - **Domain Detection**: Identifies industry (hospitality, ecommerce, saas, healthcare, fintech, etc.)
 - **Audience Personas**: Detects user types (admin, operator, manager, customer, developer)
@@ -22,6 +29,48 @@ Learn from the best - extract design patterns from top products:
 - **Visual Assets**: Generate hero styles, illustration patterns, data viz themes
 - **Knowledge Base**: Persistent learning that improves over time
 - **URL Analysis**: Analyze any website for design inspiration
+
+## Visual Assets Quick Start
+
+```typescript
+import {
+  generatePlaceholder,
+  generateAnimation,
+  optimizeSVG,
+  generatePattern
+} from 'taste-engine';
+
+// 1. Context-aware placeholder
+const hero = await generatePlaceholder({
+  type: 'hero',
+  style: 'photography',
+  industry: 'hospitality',
+  dimensions: [1920, 1080]
+});
+// → { url: 'https://picsum.photos/...', alt: 'Luxury hotel experience' }
+
+// 2. Generate animation code (copy-paste ready!)
+const animation = generateAnimation('logo-grid', {
+  effect: 'logo-grid',
+  library: 'framer-motion',
+  stagger: 0.1,
+  duration: 0.5
+});
+console.log(animation.code); // Full React component with Framer Motion
+
+// 3. Optimize SVG
+const result = optimizeSVG(rawSvg, { minify: true });
+console.log(result.savings);         // 32.5 (% saved)
+console.log(result.recommendations); // Accessibility/performance tips
+
+// 4. Generate pattern background
+const pattern = generatePattern({
+  type: 'dots',
+  opacity: 0.3,
+  colors: { foreground: '#6366f1', background: '#0f172a' }
+});
+element.style.cssText = pattern.css; // Instant pattern background!
+```
 
 ## Features
 
@@ -390,6 +439,13 @@ We encode this knowledge as **recipes**—not rigid rules, but flexible patterns
 Both modes produce the same output: a taste profile that guides design decisions.
 
 ## Changelog
+
+### v0.5.0 (2024-12-18)
+- **NEW**: Visual Assets Module
+  - `generatePlaceholder()` - Context-aware placeholder images
+  - `generateAnimation()` - Animation code for Framer Motion, GSAP, CSS, Tailwind
+  - `optimizeSVG()` - Pure TypeScript SVG optimizer
+  - `generatePattern()` - 14 SVG pattern types
 
 ### v0.4.0 (2024-12-18)
 - **NEW**: UX Context Scanner for codebase analysis

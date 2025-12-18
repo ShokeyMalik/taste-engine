@@ -5,6 +5,39 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2024-12-18
+
+### Added
+
+- **Visual Assets Module** - NEW module for context-aware visual asset generation
+  - `generatePlaceholder()` - Context-aware placeholder images
+    - Photography style (Lorem Picsum integration)
+    - Gradient, pattern, solid color styles
+    - Industry-aware alt text generation
+    - 10 placeholder types: hero, avatar, product, testimonial, thumbnail, logo, icon, background, card, gallery
+  - `generateAnimation()` - Animation code generation
+    - Framer Motion templates (25+ effects)
+    - GSAP templates with ScrollTrigger
+    - CSS keyframes
+    - Tailwind config extensions
+    - Effects: fade, slide, scale, rotate, stagger, hover, scroll-reveal, parallax, pulse, shimmer, logo-grid, hero-entrance, text-reveal, counter, progress, skeleton
+  - `optimizeSVG()` - SVG optimization and analysis
+    - Remove comments, metadata, empty elements
+    - Clean up IDs, convert colors
+    - Accessibility recommendations
+    - Performance analysis
+    - No external dependencies (pure TypeScript)
+  - `generatePattern()` - SVG pattern generation
+    - 14 pattern types: dots, lines, grid, zigzag, waves, circles, triangles, hexagons, diamonds, chevron, noise, topography, circuit, bubbles
+    - CSS background output
+    - Data URI generation
+    - Rotation and scale support
+
+### Changed
+
+- Updated README with Visual Assets documentation
+- Added comprehensive animation code examples
+
 ## [0.4.0] - 2024-12-18
 
 ### Added
