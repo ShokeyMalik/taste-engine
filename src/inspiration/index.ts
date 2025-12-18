@@ -1124,3 +1124,6 @@ export * from './visual-assets';
 // Re-export URL analyzer and selective inspirations
 export * from './url-analyzer';
 
+// Re-export knowledge base (persistent learning)
+export * from './knowledge-base';
+

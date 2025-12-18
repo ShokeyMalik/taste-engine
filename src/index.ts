@@ -157,3 +157,21 @@ export {
   URLAnalyzer,
   SelectiveInspirationMerger,
 } from './inspiration';
+
+// Knowledge Base (Persistent Learning)
+export type {
+  KnowledgeEntry,
+  KnowledgeBaseStats,
+  KnowledgeBaseConfig,
+} from './inspiration';
+
+export {
+  InspirationKnowledgeBase,
+  SmartInspirationResolver,
+  getKnowledgeBase,
+  getSmartResolver,
+  learnInspiration,
+  getLearnedInspiration,
+  hasLearnedInspiration,
+  getKnowledgeStats,
+} from './inspiration';
