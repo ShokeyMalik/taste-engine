@@ -1,0 +1,190 @@
+/**
+ * Chronicle Dark Theme
+ *
+ * Premium dark theme with purple accent - the flagship theme.
+ * Inspired by Linear, Raycast, and modern developer tools.
+ */
+
+import type { ThemeDefinition } from '../core/types';
+
+export const chronicleDark: ThemeDefinition = {
+  name: 'Chronicle Dark',
+  mode: 'dark',
+  tokens: {
+    bg: '222 47% 5%',
+    surface: '220 35% 8%',
+    surface2: '218 30% 12%',
+    surfaceInset: '222 47% 4%',
+    border: '220 20% 16%',
+    borderSubtle: '220 20% 12%',
+    text: '210 40% 96%',
+    textMuted: '215 20% 58%',
+    accent: '255 70% 62%',
+    accentFg: '0 0% 100%',
+    accentMuted: '255 50% 18%',
+    accentSecondary: '195 85% 55%',
+    ring: '255 70% 55%',
+    success: '142 60% 45%',
+    successMuted: '142 60% 12%',
+    warning: '38 80% 50%',
+    warningMuted: '38 80% 12%',
+    danger: '0 60% 50%',
+    dangerMuted: '0 60% 12%',
+    shadowSurface: '0 8px 32px rgba(0, 0, 0, 0.4)',
+    shadowPopover: '0 16px 48px rgba(0, 0, 0, 0.5)',
+    shadowGlow: '0 0 60px rgba(124, 92, 255, 0.12)',
+    radiusSurface: '12px',
+    radiusControl: '8px',
+    typeScale: {
+      h1: {
+        fontSize: '2rem',
+        fontWeight: '700',
+        letterSpacing: '-0.025em',
+        lineHeight: '1.15',
+      },
+      h2: {
+        fontSize: '1.25rem',
+        fontWeight: '600',
+        letterSpacing: '-0.015em',
+        lineHeight: '1.3',
+      },
+      h3: {
+        fontSize: '0.875rem',
+        fontWeight: '600',
+        letterSpacing: '0',
+        lineHeight: '1.4',
+      },
+      body: {
+        fontSize: '0.875rem',
+        fontWeight: '400',
+        letterSpacing: '0',
+        lineHeight: '1.5',
+      },
+      kpi: {
+        fontSize: '1.875rem',
+        fontWeight: '700',
+        letterSpacing: '-0.02em',
+        lineHeight: '1',
+      },
+      kpiCompact: {
+        fontSize: '1.375rem',
+        fontWeight: '700',
+        letterSpacing: '-0.02em',
+        lineHeight: '1',
+      },
+      label: {
+        fontSize: '0.6875rem',
+        fontWeight: '500',
+        letterSpacing: '0.05em',
+        lineHeight: '1.4',
+        textTransform: 'uppercase',
+      },
+    },
+    density: {
+      tableRowHeight: '48px',
+      tableRowHeightCompact: '40px',
+      controlHeight: '36px',
+      controlHeightSm: '32px',
+      pageGutter: '24px',
+      sectionGap: '32px',
+      cardPadding: '20px',
+      cardPaddingCompact: '16px',
+    },
+  },
+  recipes: {
+    AppShell: {
+      backgroundTreatment: 'chronicle',
+      glowColor: 'accent',
+      glowOpacity: '0.08',
+      vignetteOpacity: '0.4',
+    },
+    Surface: {
+      default: {
+        border: true,
+        borderOpacity: '0.08',
+        shadow: true,
+        gradient: true,
+        gradientDirection: 'to bottom',
+        gradientFrom: 'surface',
+        gradientTo: 'transparent',
+      },
+      inset: {
+        border: true,
+        borderOpacity: '0.04',
+        shadow: false,
+        background: 'surfaceInset',
+      },
+      floating: {
+        border: true,
+        borderOpacity: '0.12',
+        shadow: true,
+        shadowStrength: 'strong',
+        innerHighlight: true,
+        innerHighlightOpacity: '0.03',
+      },
+    },
+    StatCard: {
+      style: 'minimal',
+      accentMode: 'none',
+      accentElement: 'leftHairline',
+      accentWidth: '2px',
+      primaryHighlight: true,
+      valueFontStyle: 'kpi',
+      labelFontStyle: 'label',
+    },
+    SectionHeader: {
+      style: 'chronicle',
+      titleWeight: '600',
+      subtitleOpacity: '0.6',
+      subtitleMaxWidth: '480px',
+      spacing: {
+        top: '0',
+        bottom: '20px',
+      },
+    },
+    DataTable: {
+      density: 'compact',
+      headerStyle: 'muted-uppercase',
+      rowHover: 'subtle',
+      separatorStyle: 'faint',
+      separatorOpacity: '0.06',
+    },
+    HeroHeader: {
+      style: 'chronicle',
+      titleSize: 'h1',
+      subtitleMuted: true,
+      actionsGrouped: true,
+      spacing: {
+        paddingY: '32px',
+      },
+    },
+    ActivityTable: {
+      density: 'compact',
+      headerStyle: 'muted-uppercase',
+      headerTracking: '0.12em',
+      headerOpacity: '0.5',
+      rowHover: 'subtle',
+      rowHoverBg: 'surface2/30',
+      separatorOpacity: '0.04',
+      iconBg: 'surface2/50',
+      iconOpacity: '0.5',
+      amountWeight: '500',
+      timeOpacity: '0.5',
+      containerBg: 'surface2/30',
+      containerBorder: true,
+      containerBorderOpacity: '0.06',
+    },
+    Toolbar: {
+      variant: 'inset',
+      height: '40px',
+      itemHeight: '32px',
+      itemPadding: '10px',
+      gap: '6px',
+      separatorColor: 'border',
+      separatorOpacity: '0.15',
+      separatorHeight: '16px',
+    },
+  },
+};
+
+export default chronicleDark;

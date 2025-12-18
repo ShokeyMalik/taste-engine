@@ -1,0 +1,42 @@
+# Source files (dist is published)
+src/
+tsconfig.json
+tsup.config.ts
+
+# Development files
+.storybook/
+stories/
+*.stories.tsx
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+__tests__/
+coverage/
+.nyc_output/
+
+# Config files
+.eslintrc*
+.prettierrc*
+.editorconfig
+jest.config.*
+vitest.config.*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Misc
+*.log
+*.tgz
+node_modules/
