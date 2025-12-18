@@ -1121,3 +1121,6 @@ export async function inspire(
 // Re-export visual assets module
 export * from './visual-assets';
 
+// Re-export URL analyzer and selective inspirations
+export * from './url-analyzer';
+

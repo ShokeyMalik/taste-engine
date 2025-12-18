@@ -144,3 +144,16 @@ export {
   generateVisualAssets,
   VisualAssetGenerator,
 } from './inspiration';
+
+// URL Analysis & Selective Inspirations
+export type {
+  URLAnalysisResult,
+  SelectiveInspiration,
+} from './inspiration';
+
+export {
+  analyzeURL,
+  mergeSelectiveInspirations,
+  URLAnalyzer,
+  SelectiveInspirationMerger,
+} from './inspiration';
