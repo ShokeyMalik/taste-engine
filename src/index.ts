@@ -175,3 +175,30 @@ export {
   hasLearnedInspiration,
   getKnowledgeStats,
 } from './inspiration';
+
+// UX Context Scanner (MCP Mode - Auto-detect from Codebase)
+export type {
+  UXContextManifest,
+  Industry,
+  AudiencePersona,
+  Workflow,
+  WorkflowStep,
+  ContentHierarchy,
+  ContentItem,
+  ExistingPatterns,
+  LayoutPattern,
+  UXComponentPattern,
+  NavigationPattern,
+  NavigationItem,
+  DataDisplayPattern,
+  UXRecommendation,
+  TasteEngineContext,
+} from './ux-scanner';
+
+export {
+  UXContextScanner,
+  scanUXContext,
+  quickScan,
+  getDesignGuidelines,
+  createTasteEngineContext,
+} from './ux-scanner';
