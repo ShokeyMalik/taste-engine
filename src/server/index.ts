@@ -23,14 +23,43 @@ import { join } from 'path';
 // Import types from our contract
 import type {
   VisualMCPOutput,
-  RepoMetadata,
-  TasteProfile,
+  RepoMetadata as ContractRepoMetadata,
+  TasteProfile as ContractTasteProfile,
   Plan,
   PatchInstructions,
   VerificationChecklist,
   TargetRoute,
   Inspiration,
 } from '../mcp/contract';
+
+// Internal types for server (simplified for reference profiles)
+interface InternalRepoMetadata {
+  stack: ContractRepoMetadata['stack'];
+  hasTailwind: boolean;
+  tailwindVersion?: string;
+  hasShadcn: boolean;
+  hasStyledComponents?: boolean;
+  hasEmotion?: boolean;
+  hasDesignSystem?: boolean;
+  designSystemPath?: string;
+  srcPath: string;
+  componentsPath?: string;
+  pagesPath?: string;
+  router?: string;
+}
+
+interface InternalTasteProfile {
+  abstraction: number;
+  restraint: number;
+  density: number;
+  motion: number;
+  contrast: number;
+  narrative: number;
+  motifPreference: string[];
+  typographyLooseness: number;
+  colorTemperature: 'cool' | 'warm' | 'neutral';
+  surfaceComplexity: number;
+}
 
 // =============================================================================
 // TOOL DEFINITIONS
@@ -236,7 +265,7 @@ Returns a VerificationChecklist with:
 /**
  * Analyze repository UI stack
  */
-async function analyzeRepoUI(repoPath: string): Promise<RepoMetadata> {
+async function analyzeRepoUI(repoPath: string): Promise<InternalRepoMetadata> {
   if (!existsSync(repoPath)) {
     throw new McpError(ErrorCode.InvalidRequest, `Repository path not found: ${repoPath}`);
   }
@@ -298,7 +327,7 @@ async function analyzeRepoUI(repoPath: string): Promise<RepoMetadata> {
 /**
  * Known reference profiles for taste derivation
  */
-const KNOWN_REFERENCES: Record<string, TasteProfile> = {
+const KNOWN_REFERENCES: Record<string, InternalTasteProfile> = {
   linear: {
     abstraction: 0.7,
     restraint: 0.8,
