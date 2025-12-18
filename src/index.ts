@@ -104,3 +104,43 @@ export type {
 } from './generator';
 
 export { generateCode, createGenerator, CodeGenerator } from './generator';
+
+// Inspiration (THE CORRECT APPROACH)
+export type {
+  InspirationSource,
+  ExtractedDesignLanguage,
+  LearnedTasteProfile,
+  TransformationPlan,
+  Transformation,
+} from './inspiration';
+
+export {
+  inspire,
+  learnFromInspirations,
+  createTransformer,
+  InspirationScanner,
+  PatternLearner,
+  TransformationEngine,
+  KNOWN_BRANDS,
+} from './inspiration';
+
+// Visual Assets (context-aware asset generation)
+export type {
+  VisualAssetStrategy,
+  HeroStyle,
+  IllustrationStyle,
+  DataVizStyle,
+  MotionStyle,
+  PhotographyStyle,
+  SVGPattern,
+  GradientDefinition,
+  PlaceholderStrategy,
+  AssetBrief,
+  AnimationRecipe,
+  ChartTheme,
+} from './inspiration';
+
+export {
+  generateVisualAssets,
+  VisualAssetGenerator,
+} from './inspiration';
