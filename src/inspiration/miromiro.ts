@@ -2,10 +2,14 @@ export * from './miromiro-types';
 export * from './browser-automation';
 export * from './design-token-extractor';
 export * from './asset-extractor';
+export * from './style-inspector';
+export * from './accessibility-analyzer';
 
 import { BrowserAutomation, withBrowser } from './browser-automation';
 import { extractDesignTokens, exportAsCSSVariables, exportAsTailwindConfig } from './design-token-extractor';
 import { extractAssets, categorizeAssets } from './asset-extractor';
+import { inspectElement } from './style-inspector';
+import { checkAccessibility } from './accessibility-analyzer';
 import type { ExtractionOptions, ExtractionResult } from './miromiro-types';
 
 /**
@@ -16,6 +20,9 @@ export async function extractAll(url: string, options: ExtractionOptions = {}): 
     const {
         tokens = true,
         assets = true,
+        styles = false,
+        accessibility = false,
+        selector = '',
         screenshot = false,
         timeout = 60000,
     } = options;
@@ -31,6 +38,16 @@ export async function extractAll(url: string, options: ExtractionOptions = {}): 
         // Extract assets
         if (assets) {
             results.assets = await extractAssets(url);
+        }
+
+        // Extract element styles
+        if (styles && selector) {
+            results.styles = [await inspectElement(url, selector)];
+        }
+
+        // Check accessibility
+        if (accessibility) {
+            results.accessibility = await checkAccessibility(url);
         }
 
         // Take screenshot if requested
@@ -101,6 +118,8 @@ export {
     extractDesignTokens,
     extractAssets,
     categorizeAssets,
+    inspectElement,
+    checkAccessibility,
     exportAsCSSVariables,
     exportAsTailwindConfig,
 };

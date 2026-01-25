@@ -14,6 +14,10 @@ export {
   COMPOSE_PAGE_TOOL,
   APPLY_INSPIRATION_TOOL,
   SUGGEST_BLOCKS_TOOL,
+  EXTRACT_DESIGN_TOKENS_TOOL,
+  EXTRACT_ASSETS_TOOL,
+  INSPECT_ELEMENT_TOOL,
+  CHECK_ACCESSIBILITY_TOOL,
   NEW_TOOLS,
 
   // Handlers
@@ -21,6 +25,10 @@ export {
   handleComposePage,
   handleApplyInspiration,
   handleSuggestBlocks,
+  handleExtractDesignTokens,
+  handleExtractAssets,
+  handleInspectElement,
+  handleCheckAccessibility,
 
   // Types
   type GenerateBlockInput,
@@ -32,4 +40,12 @@ export {
   type SuggestBlocksInput,
   type SuggestBlocksOutput,
   type BlockSuggestion,
+  type ExtractDesignTokensInput,
+  type ExtractDesignTokensOutput,
+  type ExtractAssetsInput,
+  type ExtractAssetsOutput,
+  type InspectElementInput,
+  type InspectElementOutput,
+  type CheckAccessibilityInput,
+  type CheckAccessibilityOutput,
 } from './tools';

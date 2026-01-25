@@ -10,6 +10,10 @@ import { APPLY_INSPIRATION_TOOL } from './apply-inspiration';
 import { SUGGEST_BLOCKS_TOOL } from './suggest-blocks';
 import { GENERATE_MARKETING_SITE_TOOL } from './generate-marketing-site';
 import { GENERATE_DESIGN_REPORT_TOOL } from './generate-design-report';
+import { EXTRACT_DESIGN_TOKENS_TOOL } from './extract-design-tokens';
+import { EXTRACT_ASSETS_TOOL } from './extract-assets';
+import { INSPECT_ELEMENT_TOOL } from './inspect-element';
+import { CHECK_ACCESSIBILITY_TOOL } from './check-accessibility';
 
 // Generate Block
 export {
@@ -60,6 +64,38 @@ export {
   type GenerateDesignReportOutput,
 } from './generate-design-report';
 
+// MiroMiro Design Token Extraction
+export {
+  EXTRACT_DESIGN_TOKENS_TOOL,
+  handleExtractDesignTokens,
+  type ExtractDesignTokensInput,
+  type ExtractDesignTokensOutput,
+} from './extract-design-tokens';
+
+// MiroMiro Asset Extraction
+export {
+  EXTRACT_ASSETS_TOOL,
+  handleExtractAssets,
+  type ExtractAssetsInput,
+  type ExtractAssetsOutput,
+} from './extract-assets';
+
+// MiroMiro Element Inspection
+export {
+  INSPECT_ELEMENT_TOOL,
+  handleInspectElement,
+  type InspectElementInput,
+  type InspectElementOutput,
+} from './inspect-element';
+
+// MiroMiro Accessibility Check
+export {
+  CHECK_ACCESSIBILITY_TOOL,
+  handleCheckAccessibility,
+  type CheckAccessibilityInput,
+  type CheckAccessibilityOutput,
+} from './check-accessibility';
+
 // All tools array
 export const NEW_TOOLS = [
   GENERATE_BLOCK_TOOL,
@@ -68,4 +104,8 @@ export const NEW_TOOLS = [
   SUGGEST_BLOCKS_TOOL,
   GENERATE_MARKETING_SITE_TOOL,
   GENERATE_DESIGN_REPORT_TOOL,
+  EXTRACT_DESIGN_TOKENS_TOOL,
+  EXTRACT_ASSETS_TOOL,
+  INSPECT_ELEMENT_TOOL,
+  CHECK_ACCESSIBILITY_TOOL,
 ];

@@ -325,6 +325,7 @@ export interface ExtractionOptions {
   // Browser options
   timeout?: number;
   waitForSelector?: string;
+  selector?: string; // used for element inspection
   screenshot?: boolean;
 
   // Output options
