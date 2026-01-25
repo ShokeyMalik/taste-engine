@@ -109,6 +109,20 @@ export interface MiromiroDesignTokens {
   };
 }
 
+export interface ComponentPattern {
+  name: string;
+  type: string;
+  count: number;
+  variants?: string[];
+  styles?: Partial<ComputedStyles>;
+}
+
+export interface MotionData {
+  libraries: string[];
+  animationTypes: string[];
+  transitions: any[];
+}
+
 // ============================================================================
 // Assets
 // ============================================================================
@@ -168,6 +182,7 @@ export interface ExtractedAssets {
   videos: VideoAsset[];
   lottie: LottieAsset[];
   icons: IconAsset[];
+  graphs: any[];
   all: Asset[];
   metadata: {
     url: string;
@@ -338,6 +353,8 @@ export interface ExtractionResult {
   assets?: ExtractedAssets;
   styles?: ElementStyles[];
   accessibility?: AccessibilityReport;
+  patterns?: ComponentPattern[];
+  motion?: MotionData;
   screenshot?: string; // base64 or file path
   metadata: {
     url: string;

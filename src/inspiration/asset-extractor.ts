@@ -70,17 +70,45 @@ function categorizeSVG(content: string, width: number, height: number): SVGAsset
 }
 
 /**
- * Extract all images from page
+ * Extract all images from page (including background images)
  */
 export async function extractImages(browser: BrowserAutomation): Promise<ImageAsset[]> {
     const imageData = await browser.evaluate(() => {
-        const images = Array.from(document.querySelectorAll('img'));
-        return images.map((img) => ({
-            src: img.src,
-            alt: img.alt || '',
-            width: img.naturalWidth,
-            height: img.naturalHeight,
-        }));
+        const images: any[] = [];
+
+        // Regular <img> tags
+        document.querySelectorAll('img').forEach((img) => {
+            if (img.src) {
+                images.push({
+                    src: img.src,
+                    alt: img.alt || '',
+                    width: img.naturalWidth,
+                    height: img.naturalHeight,
+                    source: 'img-tag'
+                });
+            }
+        });
+
+        // Background images
+        document.querySelectorAll('*').forEach((el) => {
+            const style = window.getComputedStyle(el);
+            const bg = style.backgroundImage;
+            if (bg && bg !== 'none' && bg.includes('url(')) {
+                const url = bg.match(/url\(["']?([^"']+)["']?\)/)?.[1];
+                if (url && !url.startsWith('data:')) {
+                    const fullUrl = new URL(url, window.location.href).href;
+                    images.push({
+                        src: fullUrl,
+                        alt: 'Background Image',
+                        width: el.clientWidth,
+                        height: el.clientHeight,
+                        source: 'background'
+                    });
+                }
+            }
+        });
+
+        return images;
     });
 
     return imageData.map((img) => {
@@ -101,42 +129,97 @@ export async function extractImages(browser: BrowserAutomation): Promise<ImageAs
 }
 
 /**
- * Extract all SVGs from page
+ * Extract all SVGs from page (inline and linked)
  */
 export async function extractSVGs(browser: BrowserAutomation): Promise<SVGAsset[]> {
-    const svgData = await browser.evaluate(() => {
-        const svgs = Array.from(document.querySelectorAll('svg'));
-        return svgs.map((svg) => {
+    const svgData = await browser.evaluate(async () => {
+        const results: any[] = [];
+
+        // Inline SVGs
+        document.querySelectorAll('svg').forEach((svg) => {
             const bbox = svg.getBBox ? svg.getBBox() : { width: 0, height: 0 };
-            return {
+            results.push({
                 content: svg.outerHTML,
+                url: '',
                 width: svg.width?.baseVal?.value || bbox.width || 0,
                 height: svg.height?.baseVal?.value || bbox.height || 0,
-            };
+            });
         });
+
+        // SVGs in <img> tags
+        const imgSvgs = Array.from(document.querySelectorAll('img[src$=".svg"], img[src*=".svg?"]'));
+        for (const img of imgSvgs) {
+            const imgSrc = (img as HTMLImageElement).src;
+            try {
+                // Try to fetch the SVG content to make it "visible" in the report
+                const res = await fetch(imgSrc);
+                const content = await res.text();
+                if (content.includes('<svg')) {
+                    results.push({
+                        content: content,
+                        url: imgSrc,
+                        width: (img as HTMLImageElement).naturalWidth,
+                        height: (img as HTMLImageElement).naturalHeight,
+                    });
+                }
+            } catch (e) {
+                // Fallback to just URL if fetch fails
+                results.push({
+                    content: '',
+                    url: imgSrc,
+                    width: (img as HTMLImageElement).naturalWidth,
+                    height: (img as HTMLImageElement).naturalHeight,
+                });
+            }
+        }
+
+        return results;
     });
 
     return svgData.map((svg) => {
-        const category = categorizeSVG(svg.content, svg.width, svg.height);
+        const category = categorizeSVG(svg.content || '', svg.width, svg.height);
 
-        // Optimize SVG
+        // Optimize SVG if content exists
         let optimized: string | undefined;
-        try {
-            const result = optimizeSVG(svg.content, { minify: true });
-            optimized = result.svg;
-        } catch (e) {
-            // Optimization failed, use original
+        if (svg.content) {
+            try {
+                const result = optimizeSVG(svg.content, { minify: true });
+                optimized = result.svg;
+            } catch (e) { }
         }
 
         return {
             type: 'svg' as const,
-            url: '', // SVGs are inline, no URL
+            url: svg.url,
             content: svg.content,
             width: svg.width,
             height: svg.height,
             category,
             optimized,
         };
+    });
+}
+
+/**
+ * Extract graphs and charts (Canvas elements)
+ */
+export async function extractGraphs(browser: BrowserAutomation): Promise<any[]> {
+    return await browser.evaluate(() => {
+        const canvases = Array.from(document.querySelectorAll('canvas'));
+        return canvases.map((canvas, i) => {
+            try {
+                return {
+                    id: canvas.id || `canvas-${i}`,
+                    type: 'graph',
+                    dataUrl: canvas.toDataURL('image/png'),
+                    width: canvas.width,
+                    height: canvas.height,
+                    category: 'graph'
+                };
+            } catch (e) {
+                return null;
+            }
+        }).filter(Boolean);
     });
 }
 
@@ -294,15 +377,16 @@ export async function extractAssets(url: string): Promise<ExtractedAssets> {
             await browser.scrollToBottom();
 
             // Extract all asset types
-            const [images, svgs, videos, lottie, icons] = await Promise.all([
+            const [images, svgs, videos, lottie, icons, graphs] = await Promise.all([
                 extractImages(browser),
                 extractSVGs(browser),
                 extractVideos(browser),
                 extractLottieAnimations(browser),
                 extractIcons(browser),
+                extractGraphs(browser),
             ]);
 
-            const all: Asset[] = [...images, ...svgs, ...videos, ...lottie, ...icons];
+            const all: Asset[] = [...images, ...svgs, ...videos, ...lottie, ...icons, ...graphs];
 
             return {
                 images,
@@ -310,6 +394,7 @@ export async function extractAssets(url: string): Promise<ExtractedAssets> {
                 videos,
                 lottie,
                 icons,
+                graphs,
                 all,
                 metadata: {
                     url,
