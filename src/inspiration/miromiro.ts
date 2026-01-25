@@ -53,25 +53,24 @@ async function extractAll(url: string, options: ExtractionOptions = {}): Promise
             results.accessibility = await checkAccessibility(url);
         }
 
-        // Extract Patterns, Motion, and Graphs (Taste Engine features)
+        // Unified browser session for Taste Engine features
         await withBrowser(url, async (browser) => {
             const html = await browser.getHTML();
             const analyzer = new URLAnalyzer();
 
-            // Extract Motion
+            // Extract Motion & Global Keyframes
             results.motion = analyzer.extractMotion(html, '') as MotionData;
+            results.globalMotion = await extractGlobalMotion(browser);
 
             // Extract basic patterns
             results.patterns = await extractComponentPatterns(browser);
-        }, { timeout });
 
-        // Take screenshot if requested
-        if (screenshot) {
-            await withBrowser(url, async (browser) => {
+            // Take screenshot if requested
+            if (screenshot) {
                 const screenshotBuffer = await browser.screenshot({ fullPage: true });
                 results.screenshot = screenshotBuffer.toString('base64');
-            }, { timeout });
-        }
+            }
+        }, { timeout });
 
         const duration = Date.now() - startTime;
 
@@ -94,7 +93,7 @@ async function extractAll(url: string, options: ExtractionOptions = {}): Promise
                 success: false,
                 error: error instanceof Error ? error.message : 'Unknown error',
             },
-        };
+        } as ExtractionResult;
     }
 }
 
@@ -211,6 +210,31 @@ async function extractComponentPatterns(browser: BrowserAutomation): Promise<Com
         }
 
         return patterns;
+    });
+}
+
+/**
+ * Extract all @keyframes from the document
+ */
+async function extractGlobalMotion(browser: BrowserAutomation): Promise<{ name: string; css: string }[]> {
+    return await browser.evaluate(() => {
+        const keyframes: { name: string; css: string }[] = [];
+        try {
+            for (const sheet of Array.from(document.styleSheets)) {
+                try {
+                    for (const rule of Array.from(sheet.cssRules)) {
+                        if (rule.constructor.name === 'CSSKeyframesRule') {
+                            const kRule = rule as CSSKeyframesRule;
+                            keyframes.push({
+                                name: kRule.name,
+                                css: kRule.cssText
+                            });
+                        }
+                    }
+                } catch (e) { } // Cross-origin
+            }
+        } catch (e) { }
+        return keyframes;
     });
 }
 

@@ -136,6 +136,7 @@ export interface ImageAsset {
   alt?: string;
   category: 'hero' | 'logo' | 'icon' | 'illustration' | 'background' | 'product' | 'other';
   size?: number; // bytes
+  source?: 'img-tag' | 'background' | 'manual';
 }
 
 export interface SVGAsset {
@@ -362,6 +363,7 @@ export interface ExtractionResult {
   accessibility?: AccessibilityReport;
   patterns?: ComponentPattern[];
   motion?: MotionData;
+  globalMotion?: { name: string; css: string }[]; // High-fidelity: All keyframes from page
   screenshot?: string; // base64 or file path
   metadata: {
     url: string;
