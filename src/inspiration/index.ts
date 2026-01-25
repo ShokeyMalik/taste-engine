@@ -469,6 +469,7 @@ export const KNOWN_BRANDS: Record<string, Partial<ExtractedDesignLanguage>> = {
   },
 };
 
+import { analyzeURL, URLAnalysisResult } from './url-analyzer';
 // =============================================================================
 // INSPIRATION SCANNER
 // =============================================================================
@@ -562,24 +563,78 @@ export class InspirationScanner {
    * Extract design language from a URL (fetches and analyzes CSS)
    */
   private async extractFromUrl(source: InspirationSource): Promise<ExtractedDesignLanguage | null> {
-    // In a full implementation, this would:
-    // 1. Fetch the URL
-    // 2. Parse CSS and extract variables
-    // 3. Analyze computed styles
-    // 4. Extract color palette, spacing patterns, etc.
-
-    // For now, try to match to a known brand by domain
-    const url = source.value.toLowerCase();
-
-    for (const [brand, data] of Object.entries(KNOWN_BRANDS)) {
-      if (url.includes(brand)) {
-        return this.extractFromBrand({ ...source, type: 'brand', value: brand });
+    try {
+      const analysis = await analyzeURL(source.value);
+      if (!analysis.success) {
+        console.warn(`Could not analyze URL: ${source.value}`);
+        return null;
       }
+
+      return this.mapAnalysisToDesignLanguage(source, analysis);
+    } catch (error) {
+      console.error(`Error analyzing URL ${source.value}:`, error);
+      return null;
+    }
+  }
+
+  private mapAnalysisToDesignLanguage(source: InspirationSource, analysis: URLAnalysisResult): ExtractedDesignLanguage {
+    // This is a heuristic-based mapping from the raw analysis to the structured design language.
+    // It can be improved with more sophisticated analysis.
+    const primaryColor = analysis.extractedColors.accents[0] || analysis.extractedColors.texts[0] || '#000000';
+    
+    // Determine motion level
+    let motionLevel: 'minimal' | 'subtle' | 'expressive' = 'subtle';
+    if (analysis.extractedMotion.libraries.includes('GSAP') || analysis.extractedMotion.libraries.includes('Framer Motion')) {
+      motionLevel = 'expressive';
+    } else if (analysis.extractedMotion.animationTypes.includes('Scroll-triggered (AOS)') || analysis.extractedMotion.animationTypes.includes('Parallax (Data Attribute)')) {
+      motionLevel = 'expressive';
+    } else if (analysis.extractedComponents.transitions.some(t => parseInt(t) > 250)) { // If some transitions are longer
+      motionLevel = 'expressive';
+    } else if (analysis.extractedComponents.transitions.length > 0) {
+      motionLevel = 'subtle';
+    } else {
+      motionLevel = 'minimal';
     }
 
-    // Return a placeholder that indicates URL analysis is needed
-    console.log(`URL analysis for ${source.value} - would fetch and analyze CSS in production`);
-    return null;
+
+    return {
+      source,
+      colors: {
+        primary: [primaryColor],
+        secondary: analysis.extractedColors.accents.slice(1, 3),
+        accent: analysis.extractedColors.accents,
+        background: analysis.extractedColors.backgrounds,
+        text: analysis.extractedColors.texts,
+        gradients: [], // Gradient extraction not yet implemented
+      },
+      spacing: {
+        scale: 'comfortable', // Needs heuristic
+        baseUnit: 4, // Needs heuristic
+        patterns: [...analysis.extractedSpacing.paddings, ...analysis.extractedSpacing.margins, ...analysis.extractedSpacing.gaps],
+      },
+      typography: {
+        headingStyle: 'bold', // Needs heuristic
+        bodySize: 'base', // Needs heuristic
+        tracking: 'normal', // Needs heuristic
+        fontStack: analysis.extractedTypography.fontFamilies,
+      },
+      components: {
+        buttonStyle: 'solid', // Needs heuristic
+        cardStyle: 'bordered', // Needs heuristic
+        borderRadius: 'md', // Needs heuristic from analysis.extractedComponents.borderRadii
+        shadows: 'subtle', // Needs heuristic from analysis.extractedComponents.shadows
+      },
+      motion: {
+        level: motionLevel, 
+        duration: 200, // Needs heuristic
+        easing: 'ease-out', // Needs heuristic
+      },
+      mood: {
+        formality: 'balanced', // Needs heuristic
+        density: 'balanced', // Needs heuristic
+        contrast: 'medium', // Needs heuristic
+      },
+    };
   }
 
   /**

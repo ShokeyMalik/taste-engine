@@ -699,3 +699,38 @@ export function generateCode(
       throw new Error(`Unknown component type: ${what}`);
   }
 }
+
+// =============================================================================
+// BLOCK GENERATOR (v1.0.0)
+// =============================================================================
+
+export type {
+  BlockGeneratorConfig,
+  GenerationResult,
+} from './block-generator';
+
+export {
+  BlockGenerator,
+  createBlockGenerator,
+  generateBlock,
+  generateBlocks,
+  quickGenerate,
+} from './block-generator';
+
+// =============================================================================
+// PAGE COMPOSER (v1.0.0)
+// =============================================================================
+
+export type {
+  PageComposerConfig,
+  ComposedBlock,
+} from './page-composer';
+
+export {
+  PageComposer,
+  createPageComposer,
+  composePage,
+  suggestPageStructure,
+  composeLandingPage,
+  composeDashboardPage,
+} from './page-composer';

@@ -9,6 +9,8 @@
  * This enables: "make it look like coca-cola.com"
  */
 
+declare const web_fetch: (args: { prompt: string }) => Promise<{ output: string }>;
+
 import type { ExtractedDesignLanguage, InspirationSource } from './index';
 
 // =============================================================================
@@ -40,6 +42,13 @@ export interface URLAnalysisResult {
     shadows: string[];
     transitions: string[];
   };
+  extractedImages: string[];
+  extractedSVGs: string[];
+  extractedLottieAnimations: string[];
+  extractedMotion: {
+    libraries: string[];
+    animationTypes: string[];
+  };
   cssVariables: Record<string, string>;
   rawCSS?: string;
 }
@@ -55,6 +64,8 @@ export interface SelectiveInspiration {
 // =============================================================================
 // URL ANALYZER
 // =============================================================================
+
+
 
 export class URLAnalyzer {
   /**
@@ -76,41 +87,208 @@ export class URLAnalyzer {
       extractedTypography: { fontFamilies: [], fontSizes: [], fontWeights: [], lineHeights: [] },
       extractedSpacing: { paddings: [], margins: [], gaps: [] },
       extractedComponents: { borderRadii: [], shadows: [], transitions: [] },
+      extractedImages: [],
+      extractedSVGs: [],
+      extractedLottieAnimations: [],
+      extractedMotion: { libraries: [], animationTypes: [] },
       cssVariables: {},
+      rawCSS: '',
     };
 
     try {
-      // In a real implementation, this would use fetch + CSS parsing
-      // For now, we'll provide the structure and common patterns
-
-      // Extract domain for brand detection
       const domain = this.extractDomain(url);
-
-      // Try to match known patterns by domain
       const knownPatterns = this.getKnownDomainPatterns(domain);
       if (knownPatterns) {
         return { ...result, ...knownPatterns, success: true };
       }
 
-      // For unknown URLs, we'd need to actually fetch and parse
-      // This requires either:
-      // 1. Server-side fetch with CSS parsing
-      // 2. Browser extension with DOM access
-      // 3. Headless browser service
+      const htmlResult = await web_fetch({ prompt: `Get the complete, unsummarized HTML source code of the page at this URL: ${url}` });
+      let htmlContent = htmlResult.output;
+      let combinedCSS = '';
+      
+      // Basic check to see if it's likely a summarized version
+      // A full HTML document should start with <!DOCTYPE html> or <html>
+      const isSummarized = !htmlContent.trim().startsWith('<!DOCTYPE html>') && !htmlContent.trim().startsWith('<html');
 
-      console.log(`URL analysis for ${url} - would fetch and parse CSS in production`);
-      result.success = false;
+      if (isSummarized) {
+        console.warn(`web_fetch returned a summarized version for ${url}. Analysis might be incomplete. Consider using analyzeRawContent with full HTML/CSS.`);
+        // Proceed with what we have, but mark success as false or provide a warning
+        result.success = false;
+        result.rawCSS = htmlContent; // If it's summarized, it's likely mostly text or some extracted styles
+        // Heuristically try to extract basic info from summary
+        result.extractedColors = this.parseCSS(htmlContent).extractedColors || result.extractedColors;
+        result.extractedTypography = this.parseCSS(htmlContent).extractedTypography || result.extractedTypography;
+        result.extractedMotion.animationTypes.push('Summary-based Analysis');
+
+        return result;
+      }
+
+      // If we got full HTML, proceed with detailed extraction
+      const styleSheetLinks = this.extractStylesheetLinks(htmlContent, url);
+      const inlineStyles = this.extractInlineStyles(htmlContent);
+
+      const cssPromises = styleSheetLinks.map(link => web_fetch({ prompt: `Get the content of the CSS file at this URL: ${link}` }));
+      const cssResults = await Promise.all(cssPromises);
+      const allCSS = cssResults.map(res => res.output);
+
+      allCSS.push(inlineStyles);
+
+      combinedCSS = allCSS.join('\n');
+      
+      const rawContentResult = await analyzeRawContent(htmlContent, combinedCSS, url);
+      
+      return { ...rawContentResult, url, success: true };
+
 
     } catch (error) {
       console.error(`Failed to analyze URL: ${url}`, error);
+      result.success = false;
     }
 
     return result;
   }
 
-  /**
-   * Parse CSS content and extract design tokens
-   */
+  private extractStylesheetLinks(html: string, baseUrl: string): string[] {
+    const links: string[] = [];
+    const linkRegex = /<link\s+[^>]*?href=["'](.*?)["'][^>]*?>/g;
+    let match;
+    while ((match = linkRegex.exec(html)) !== null) {
+      if (match[0].includes('rel="stylesheet"')) {
+        const href = match[1];
+        try {
+          links.push(new URL(href, baseUrl).href);
+        } catch (e) {
+          console.warn(`Invalid stylesheet URL found: ${href}`);
+        }
+      }
+    }
+    return links;
+  }
+
+  private extractInlineStyles(html: string): string {
+    const styles: string[] = [];
+    const styleRegex = /<style[^>]*?>([\s\S]*?)<\/style>/g;
+    let match;
+    while ((match = styleRegex.exec(html)) !== null) {
+      styles.push(match[1]);
+    }
+    return styles.join('\n');
+  }
+
+  private extractImages(html: string, css: string, baseUrl: string): string[] {
+    const imageUrls = new Set<string>();
+
+    // Extract from <img> tags
+    const imgTagRegex = /<img[^>]+>/g;
+    const srcRegex = /src=["'](.*?)["']/;
+    const srcsetRegex = /srcset=["'](.*?)["']/;
+    let match;
+    while ((match = imgTagRegex.exec(html)) !== null) {
+      const imgTag = match[0];
+      
+      const srcMatch = imgTag.match(srcRegex);
+      if (srcMatch) {
+        try {
+          imageUrls.add(new URL(srcMatch[1], baseUrl).href);
+        } catch (e) {
+          console.warn(`Invalid image URL found in src: ${srcMatch[1]}`);
+        }
+      }
+
+      const srcsetMatch = imgTag.match(srcsetRegex);
+      if (srcsetMatch) {
+        const srcset = srcsetMatch[1];
+        const sources = srcset.split(',').map(s => s.trim().split(' ')[0]);
+        for (const source of sources) {
+          try {
+            imageUrls.add(new URL(source, baseUrl).href);
+          } catch (e) {
+            console.warn(`Invalid image URL found in srcset: ${source}`);
+          }
+        }
+      }
+    }
+
+    // Extract from inline style attributes (e.g., style="background-image: url(...)")
+    const inlineStyleBgRegex = /style=["'][^"']*background-image:\s*url\((['"]?)(.*?)\1\)[^"']*["']/g;
+    while ((match = inlineStyleBgRegex.exec(html)) !== null) {
+      const url = match[2];
+      if (!url.startsWith('data:')) {
+        try {
+          imageUrls.add(new URL(url, baseUrl).href);
+        } catch (e) {
+          console.warn(`Invalid inline background image URL found: ${url}`);
+        }
+      }
+    }
+
+    // Extract from CSS background-image properties
+    const cssUrlRegex = /url\((['"]?)(.*?)\1\)/g;
+    while ((match = cssUrlRegex.exec(css)) !== null) {
+      const url = match[2];
+      if (!url.startsWith('data:')) {
+        try {
+          imageUrls.add(new URL(url, baseUrl).href);
+        } catch (e) {
+          console.warn(`Invalid background image URL found: ${url}`);
+        }
+      }
+    }
+    return [...imageUrls];
+  }
+
+  private extractSVGs(html: string): string[] {
+    const svgs = new Set<string>();
+    const svgRegex = /<svg[^>]*?>[\s\S]*?<\/svg>/g;
+    let match;
+    while ((match = svgRegex.exec(html)) !== null) {
+      svgs.add(match[0]);
+    }
+    return [...svgs];
+  }
+  
+  private extractMotion(html: string, css: string): { libraries: string[], animationTypes: string[] } {
+    const libraries = new Set<string>();
+    const animationTypes = new Set<string>();
+
+    // Detect motion libraries from script tags
+    const scriptRegex = /<script[^>]+src=["']([^"']+)["'][^>]*?>/g;
+    let match;
+    while ((match = scriptRegex.exec(html)) !== null) {
+      const src = match[1].toLowerCase();
+      if (src.includes('gsap')) libraries.add('GSAP');
+      if (src.includes('framer-motion')) libraries.add('Framer Motion');
+      if (src.includes('anime.js')) libraries.add('Anime.js');
+      if (src.includes('scrollreveal')) libraries.add('ScrollReveal');
+      if (src.includes('aos')) libraries.add('AOS');
+      if (src.includes('lottie') || src.includes('bodymovin')) libraries.add('Lottie');
+    }
+
+    // Detect animation types from CSS
+    // Look for keyframe animations
+    const keyframesRegex = /@keyframes\s+([^{]+){/g;
+    while ((match = keyframesRegex.exec(css)) !== null) {
+      animationTypes.add('Custom Keyframe Animation');
+    }
+
+    // Look for common animation-related properties
+    if (css.includes('animation:') || css.includes('transition:')) {
+      // More specific detection could be added here
+      if (css.includes('transform:')) animationTypes.add('Transform Animation');
+      if (css.includes('opacity:') && (css.includes('transition:') || css.includes('animation:'))) animationTypes.add('Fade Animation');
+      // Detect parallax-like patterns (very basic, might need refinement)
+      if (css.includes('background-attachment: fixed')) animationTypes.add('Parallax-like Background');
+    }
+
+    // Look for data attributes commonly used for animations
+    if (html.includes('data-aos')) animationTypes.add('Scroll-triggered (AOS)');
+    if (html.includes('data-scroll-speed')) animationTypes.add('Parallax (Data Attribute)');
+    if (html.includes('lottie-player')) animationTypes.add('Lottie Animation');
+
+
+    return { libraries: [...libraries], animationTypes: [...animationTypes] };
+  }
+  
   parseCSS(cssContent: string): Partial<URLAnalysisResult> {
     const result: Partial<URLAnalysisResult> = {
       extractedColors: { backgrounds: [], texts: [], accents: [], borders: [] },
@@ -126,40 +304,54 @@ export class URLAnalyzer {
       result.cssVariables![`--${match[1]}`] = match[2].trim();
     }
 
-    // Extract colors (hex, rgb, hsl)
-    const colorMatches = cssContent.matchAll(/(#[a-fA-F0-9]{3,8}|rgb\([^)]+\)|hsl\([^)]+\))/g);
-    const colors = new Set<string>();
-    for (const match of colorMatches) {
-      colors.add(match[1]);
-    }
+    // Extract all values for key properties
+    const colors = this.extractPropertyValues(cssContent, /color\s*:/g);
+    const backgroundColors = this.extractPropertyValues(cssContent, /background-color\s*:/g);
+    const borderColors = this.extractPropertyValues(cssContent, /border-color\s*:/g);
+    
+    const allColors = [...colors, ...backgroundColors, ...borderColors];
+    const uniqueColors = [...new Set(allColors.map(c => c.toLowerCase()))];
 
-    // Categorize colors by context (simplified)
-    const colorArray = Array.from(colors);
-    result.extractedColors!.backgrounds = colorArray.filter(c => this.isLightColor(c)).slice(0, 5);
-    result.extractedColors!.texts = colorArray.filter(c => this.isDarkColor(c)).slice(0, 5);
-    result.extractedColors!.accents = colorArray.filter(c => this.isSaturatedColor(c)).slice(0, 5);
+    result.extractedColors!.texts = [...new Set(colors)];
+    result.extractedColors!.backgrounds = [...new Set(backgroundColors)];
+    result.extractedColors!.borders = [...new Set(borderColors)];
+    result.extractedColors!.accents = this.findAccentColors(uniqueColors, result.extractedColors!.backgrounds, result.extractedColors!.texts);
 
-    // Extract font families
-    const fontMatches = cssContent.matchAll(/font-family\s*:\s*([^;]+);/g);
-    for (const match of fontMatches) {
-      result.extractedTypography!.fontFamilies.push(match[1].trim());
-    }
+    result.extractedTypography!.fontFamilies = [...new Set(this.extractPropertyValues(cssContent, /font-family\s*:/g))];
+    result.extractedTypography!.fontSizes = [...new Set(this.extractPropertyValues(cssContent, /font-size\s*:/g))];
+    result.extractedTypography!.fontWeights = [...new Set(this.extractPropertyValues(cssContent, /font-weight\s*:/g))];
+    result.extractedTypography!.lineHeights = [...new Set(this.extractPropertyValues(cssContent, /line-height\s*:/g))];
+    
+    result.extractedSpacing!.paddings = [...new Set(this.extractPropertyValues(cssContent, /padding\s*:/g))];
+    result.extractedSpacing!.margins = [...new Set(this.extractPropertyValues(cssContent, /margin\s*:/g))];
+    result.extractedSpacing!.gaps = [...new Set(this.extractPropertyValues(cssContent, /gap\s*:/g))];
 
-    // Extract border radii
-    const radiusMatches = cssContent.matchAll(/border-radius\s*:\s*([^;]+);/g);
-    for (const match of radiusMatches) {
-      result.extractedComponents!.borderRadii.push(match[1].trim());
-    }
-
-    // Extract box shadows
-    const shadowMatches = cssContent.matchAll(/box-shadow\s*:\s*([^;]+);/g);
-    for (const match of shadowMatches) {
-      result.extractedComponents!.shadows.push(match[1].trim());
-    }
+    result.extractedComponents!.borderRadii = [...new Set(this.extractPropertyValues(cssContent, /border-radius\s*:/g))];
+    result.extractedComponents!.shadows = [...new Set(this.extractPropertyValues(cssContent, /box-shadow\s*:/g))];
+    result.extractedComponents!.transitions = [...new Set(this.extractPropertyValues(cssContent, /transition\s*:/g))];
 
     return result;
   }
 
+  private extractPropertyValues(cssContent: string, propertyRegex: RegExp): string[] {
+    const values: string[] = [];
+    const globalRegex = new RegExp(propertyRegex.source, 'g');
+    let match;
+    while ((match = globalRegex.exec(cssContent)) !== null) {
+      const valueMatch = cssContent.substring(match.index + match[0].length).match(/^\s*([^;]+);/);
+      if (valueMatch) {
+        values.push(valueMatch[1].trim());
+      }
+    }
+    return values;
+  }
+
+  private findAccentColors(allColors: string[], bgColors: string[], textColors: string[]): string[] {
+    const accentCandidates = allColors.filter(
+      color => !bgColors.includes(color) && !textColors.includes(color) && this.isSaturatedColor(color)
+    );
+    return [...new Set(accentCandidates)];
+  }
   private extractDomain(url: string): string {
     try {
       const parsed = new URL(url);
@@ -364,7 +556,6 @@ export class URLAnalyzer {
 
     return patterns[domain] || null;
   }
-
   // Color analysis helpers
   private isLightColor(color: string): boolean {
     if (color.startsWith('#')) {
@@ -404,6 +595,7 @@ export class URLAnalyzer {
     return false;
   }
 }
+
 
 // =============================================================================
 // SELECTIVE INSPIRATION MERGER
@@ -571,6 +763,55 @@ export class SelectiveInspirationMerger {
 // EXPORTS
 // =============================================================================
 
+export async function analyzeRawContent(htmlContent: string, cssContent: string, baseUrl: string): Promise<URLAnalysisResult> {
+  const analyzer = new URLAnalyzer();
+  const result: URLAnalysisResult = {
+    url: baseUrl,
+    success: true,
+    extractedColors: { backgrounds: [], texts: [], accents: [], borders: [] },
+    extractedTypography: { fontFamilies: [], fontSizes: [], fontWeights: [], lineHeights: [] },
+    extractedSpacing: { paddings: [], margins: [], gaps: [] },
+    extractedComponents: { borderRadii: [], shadows: [], transitions: [] },
+    extractedImages: [],
+    extractedSVGs: [],
+    extractedLottieAnimations: [],
+    extractedMotion: { libraries: [], animationTypes: [] },
+    cssVariables: {},
+    rawCSS: cssContent,
+  };
+
+  const inlineStylesFromHtml = analyzer.extractInlineStyles(htmlContent);
+  const combinedCssForParsing = cssContent + '\n' + inlineStylesFromHtml;
+
+  const parsedResult = analyzer.parseCSS(combinedCssForParsing);
+
+  result.extractedColors = parsedResult.extractedColors!;
+  result.extractedTypography = parsedResult.extractedTypography!;
+  result.extractedSpacing = parsedResult.extractedSpacing!;
+  result.extractedComponents = parsedResult.extractedComponents!;
+  result.cssVariables = parsedResult.cssVariables!;
+  result.extractedImages = analyzer.extractImages(htmlContent, combinedCssForParsing, baseUrl);
+  result.extractedSVGs = analyzer.extractSVGs(htmlContent);
+  result.extractedMotion = analyzer.extractMotion(htmlContent, combinedCssForParsing);
+
+  return result;
+}
+
+/**
+ * Analyzes a URL to extract its design language.
+ *
+ * NOTE: This function relies on the `web_fetch` tool to retrieve page content.
+ * The `web_fetch` tool may return a summarized version of the page rather than
+ * the complete raw HTML source. If a summarized version is returned, the analysis
+ * will be limited, and a warning will be logged.
+ *
+ * For a guaranteed full analysis, especially for dynamic sites, consider using
+ * the `analyzeRawContent` function and providing the complete HTML and CSS
+ * obtained via other means (e.g., a headless browser script).
+ *
+ * @param url The URL of the website to analyze.
+ * @returns A Promise that resolves to a `URLAnalysisResult` object.
+ */
 export async function analyzeURL(url: string): Promise<URLAnalysisResult> {
   const analyzer = new URLAnalyzer();
   return analyzer.analyze(url);

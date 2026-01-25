@@ -1,13 +1,16 @@
 /**
- * Taste Engine - Context-Aware Design System
+ * Taste Engine - Context-Aware Design System & UI Intelligence Layer
  *
  * Transform AI-generated UIs from generic to distinctive.
+ * The design brain for vibe coding tools (v0, Cursor, Claude Code, Bolt).
  *
  * Core Features:
  * - Context-aware recipes (product vs marketing)
  * - 5-tuner system for instant visual adjustment
  * - Visual MCP contract for AI integration
  * - Built-in themes (Chronicle Dark, Ops Calm, Hospitality Warm)
+ * - Block Registry with 22+ UI blocks (landing, dashboard, shared)
+ * - Inspiration Profile system for learning from brands/URLs
  *
  * @example
  * ```tsx
@@ -36,7 +39,16 @@
  * }
  * ```
  *
- * @version 0.1.0
+ * @example Block Registry
+ * ```tsx
+ * import { createDefaultRegistry, heroBlock } from 'taste-engine';
+ *
+ * const registry = createDefaultRegistry();
+ * const hero = registry.get('hero');
+ * console.log(hero.variants); // ['centered', 'split', 'video-bg', 'gradient-orbs', 'minimal']
+ * ```
+ *
+ * @version 1.0.0
  * @license MIT
  */
 
@@ -101,9 +113,33 @@ export type {
   TasteConfig,
   GeneratedCode,
   GenerationContext,
+  BlockGeneratorConfig,
+  GenerationResult,
 } from './generator';
 
-export { generateCode, createGenerator, CodeGenerator } from './generator';
+export {
+  generateCode,
+  createGenerator,
+  CodeGenerator,
+  // Block Generator (v1.0.0)
+  BlockGenerator,
+  createBlockGenerator,
+  generateBlock,
+  generateBlocks,
+  quickGenerate,
+  // Page Composer (v1.0.0)
+  PageComposer,
+  createPageComposer,
+  composePage,
+  suggestPageStructure,
+  composeLandingPage,
+  composeDashboardPage,
+} from './generator';
+
+export type {
+  PageComposerConfig,
+  ComposedBlock,
+} from './generator';
 
 // Inspiration (THE CORRECT APPROACH)
 export type {
@@ -250,3 +286,224 @@ export {
   getAvailablePatternTypes,
   PatternGenerator,
 } from './visual-assets';
+
+// =============================================================================
+// BLOCK REGISTRY (v1.0.0 - UI Intelligence Layer)
+// =============================================================================
+
+// Block types and registry
+export type {
+  // Core types
+  BlockType,
+  BlockCategory,
+  BlockDefinition,
+  BlockVariant,
+  BlockPropDefinition,
+  BlockSlot,
+  BlockContextHints,
+
+  // Variant types
+  LandingBlockType,
+  DashboardBlockType,
+  SharedBlockType,
+  HeroVariant,
+  NavigationVariant,
+  FeaturesVariant,
+  PricingVariant,
+  TestimonialsVariant,
+  FAQVariant,
+  CTAVariant,
+  FooterVariant,
+  LogoCloudVariant,
+  StatsVariant,
+  SidebarVariant,
+  HeaderVariant,
+  DataTableVariant,
+  MetricCardsVariant,
+  ChartSectionVariant,
+  ActivityFeedVariant,
+  SettingsPanelVariant,
+  CommandPaletteVariant,
+  AuthVariant,
+  EmptyStateVariant,
+  ErrorPageVariant,
+  LoadingVariant,
+
+  // Generation types
+  BlockGenerationInput,
+  BlockGenerationOutput,
+  SlotInfo,
+  TailwindConfigExtension,
+  ComponentLibrary,
+  ComponentLibraryConfig,
+  AppliedTuners as BlockTuners,
+
+  // Page composition types
+  PageCompositionInput,
+  PageCompositionOutput,
+  BlockPlacement,
+  PageLayoutConfig,
+  BlockComponentOutput,
+} from './blocks';
+
+export {
+  // Registry
+  BlockRegistry,
+  getBlockRegistry,
+  resetBlockRegistry,
+
+  // Block collections
+  allBlocks,
+  landingBlocks,
+  dashboardBlocks,
+  sharedBlocks,
+
+  // Individual landing blocks
+  heroBlock,
+  navigationBlock,
+  featuresBlock,
+  pricingBlock,
+  testimonialsBlock,
+  faqBlock,
+  ctaBlock,
+  footerBlock,
+  logoCloudBlock,
+  statsBlock,
+
+  // Individual dashboard blocks
+  sidebarBlock,
+  headerBlock,
+  dataTableBlock,
+  metricCardsBlock,
+  chartSectionBlock,
+  activityFeedBlock,
+  settingsPanelBlock,
+  commandPaletteBlock,
+
+  // Individual shared blocks
+  authBlock,
+  emptyStateBlock,
+  errorPageBlock,
+  loadingBlock,
+
+  // Utilities
+  registerDefaultBlocks,
+  createDefaultRegistry,
+  hasBlock,
+  getBlockDefinition,
+  BLOCK_COUNTS,
+
+  // Type guards
+  isLandingBlock,
+  isDashboardBlock,
+  isSharedBlock,
+  getBlockCategory,
+  isValidTuners,
+
+  // Constants
+  DEFAULT_TUNERS,
+  ALL_BLOCK_TYPES,
+  BLOCK_CATEGORIES,
+} from './blocks';
+
+export type { BlockRecommendation, RecommendationContext, BlockSearchOptions } from './blocks';
+
+// =============================================================================
+// INSPIRATION PROFILE (v1.0.0 - Design Intelligence)
+// =============================================================================
+
+export type {
+  InspirationProfile,
+  InspirationSourceSummary,
+  InspirationAspect,
+  ColorPalette,
+  GradientDefinition as ProfileGradient,
+  TypographyConfig,
+  SpacingConfig,
+  MotionConfig,
+  ComponentStyleConfig,
+  BlockPreferenceConfig,
+  HeroBlockPreference,
+  FeaturesBlockPreference,
+  PricingBlockPreference,
+  TestimonialsBlockPreference,
+  CTABlockPreference,
+  SidebarBlockPreference,
+  DataTableBlockPreference,
+} from './inspiration/inspiration-profile';
+
+export {
+  InspirationProfileBuilder,
+  ProfileBuilder,
+  mergeProfiles,
+  serializeProfile,
+  deserializeProfile,
+  getDefaultColorPalette,
+  getDefaultTypography,
+  getDefaultSpacing,
+  getDefaultMotion,
+  getDefaultComponentStyles,
+  getDefaultBlockPreferences,
+  getDefaultTuners,
+} from './inspiration/inspiration-profile';
+
+export {
+  fromExtractedDesignLanguage,
+  fromLearnedTasteProfile,
+} from './inspiration/profile-converter';
+
+// =============================================================================
+// COMPONENT LIBRARY INTEGRATIONS (v1.0.0 - Library Detection & Mapping)
+// =============================================================================
+
+export type {
+  // shadcn types
+  ShadcnComponentsJson,
+  ShadcnConfig,
+  ShadcnComponent,
+  ShadcnComponentInfo,
+  TokenMapping,
+  MappedTokens,
+  TailwindThemeExtension,
+  ComponentUsage,
+  BlockComponentMapping,
+
+  // Library detection types
+  ComponentLibrary as DetectedLibrary,
+  LibraryDetectionResult,
+} from './integrations';
+
+export {
+  // shadcn detection
+  detectShadcn,
+  detectCnUtility,
+  ShadcnDetector,
+
+  // Token mapping
+  ShadcnTokenMapper,
+  createMapper,
+  getTailwindClass,
+  getShadcnClasses,
+  SHADCN_CSS_VARIABLES,
+  SHADCN_DARK_VARIABLES,
+  COLOR_MAPPINGS,
+
+  // Component knowledge
+  ShadcnComponentKnowledge,
+  createComponentKnowledge,
+  getAvailableBlocks,
+  getBlocksByInstallStatus,
+  getComponentTemplate,
+  BLOCK_COMPONENT_MAPPINGS,
+  SHADCN_COMPONENTS,
+
+  // Library detection
+  detectComponentLibrary,
+  getCssVariablePrefix,
+  getTailwindConventions,
+
+  // Full integration
+  initializeShadcnIntegration,
+  hasShadcn,
+  getShadcnSummary,
+} from './integrations';
