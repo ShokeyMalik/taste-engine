@@ -10,6 +10,8 @@ import { extractDesignTokens, exportAsCSSVariables, exportAsTailwindConfig } fro
 import { extractAssets, categorizeAssets } from './asset-extractor';
 import { inspectElement } from './style-inspector';
 import { checkAccessibility } from './accessibility-analyzer';
+import { DesignReportGenerator } from './report-generator';
+import { PDFService } from './pdf-service';
 import type { ExtractionOptions, ExtractionResult } from './miromiro-types';
 
 /**
@@ -109,6 +111,31 @@ export function exportTokens(tokens: any, format: 'css' | 'tailwind' | 'json' | 
     }
 
     return format === 'all' ? exports : exports[format];
+}
+
+/**
+ * Generate a complete, beautifully designed PDF report for a URL
+ */
+export async function generateBeautifulReport(url: string, outputPath: string): Promise<string> {
+    // 1. Perform full extraction
+    const extraction = await extractAll(url, {
+        tokens: true,
+        assets: true,
+        accessibility: true,
+        screenshot: true
+    });
+
+    if (!extraction.metadata.success) {
+        throw new Error(`Extraction failed: ${extraction.metadata.error}`);
+    }
+
+    // 2. Generate HTML report
+    const reportGenerator = new DesignReportGenerator();
+    const html = reportGenerator.generateHTML(extraction);
+
+    // 3. Convert to PDF
+    const pdfService = new PDFService();
+    return await pdfService.generatePDF(html, outputPath);
 }
 
 // Re-export key functions

@@ -14,6 +14,7 @@ import { EXTRACT_DESIGN_TOKENS_TOOL } from './extract-design-tokens';
 import { EXTRACT_ASSETS_TOOL } from './extract-assets';
 import { INSPECT_ELEMENT_TOOL } from './inspect-element';
 import { CHECK_ACCESSIBILITY_TOOL } from './check-accessibility';
+import { GENERATE_BEAUTIFUL_DESIGN_REPORT_TOOL } from './generate-beautiful-design-report';
 
 // Generate Block
 export {
@@ -96,6 +97,14 @@ export {
   type CheckAccessibilityOutput,
 } from './check-accessibility';
 
+// MiroMiro Beautiful Design Report
+export {
+  GENERATE_BEAUTIFUL_DESIGN_REPORT_TOOL,
+  handleGenerateBeautifulDesignReport,
+  type GenerateBeautifulDesignReportInput,
+  type GenerateBeautifulDesignReportOutput,
+} from './generate-beautiful-design-report';
+
 // All tools array
 export const NEW_TOOLS = [
   GENERATE_BLOCK_TOOL,
@@ -108,4 +117,5 @@ export const NEW_TOOLS = [
   EXTRACT_ASSETS_TOOL,
   INSPECT_ELEMENT_TOOL,
   CHECK_ACCESSIBILITY_TOOL,
+  GENERATE_BEAUTIFUL_DESIGN_REPORT_TOOL,
 ];

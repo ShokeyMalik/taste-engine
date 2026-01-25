@@ -18,6 +18,7 @@ export {
   EXTRACT_ASSETS_TOOL,
   INSPECT_ELEMENT_TOOL,
   CHECK_ACCESSIBILITY_TOOL,
+  GENERATE_BEAUTIFUL_DESIGN_REPORT_TOOL,
   NEW_TOOLS,
 
   // Handlers
@@ -29,6 +30,7 @@ export {
   handleExtractAssets,
   handleInspectElement,
   handleCheckAccessibility,
+  handleGenerateBeautifulDesignReport,
 
   // Types
   type GenerateBlockInput,
@@ -48,4 +50,6 @@ export {
   type InspectElementOutput,
   type CheckAccessibilityInput,
   type CheckAccessibilityOutput,
+  type GenerateBeautifulDesignReportInput,
+  type GenerateBeautifulDesignReportOutput,
 } from './tools';
