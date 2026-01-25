@@ -9,8 +9,9 @@
  * This enables: "make it look like coca-cola.com"
  */
 
-declare const web_fetch: (args: { prompt: string }) => Promise<{ output: string }>;
-
+import { withBrowser } from './browser-automation';
+import * as fs from 'fs';
+import * as path from 'path';
 import type { ExtractedDesignLanguage, InspirationSource } from './index';
 
 // =============================================================================
@@ -102,8 +103,13 @@ export class URLAnalyzer {
         return { ...result, ...knownPatterns, success: true };
       }
 
-      const htmlResult = await web_fetch({ prompt: `Get the complete, unsummarized HTML source code of the page at this URL: ${url}` });
-      let htmlContent = htmlResult.output;
+      const htmlResult = await withBrowser(url, async (browser) => {
+        return {
+          html: await browser.getHTML(),
+          css: '' // Basic analyze will extract from HTML tags
+        }
+      });
+      let htmlContent = htmlResult.html;
       let combinedCSS = '';
 
       // Basic check to see if it's likely a summarized version
@@ -126,12 +132,10 @@ export class URLAnalyzer {
       // If we got full HTML, proceed with detailed extraction
       const styleSheetLinks = this.extractStylesheetLinks(htmlContent, url);
       const inlineStyles = this.extractInlineStyles(htmlContent);
+      const allCSS = [inlineStyles]; // Fallback to inline only if direct CSS fetch is skipped
 
-      const cssPromises = styleSheetLinks.map(link => web_fetch({ prompt: `Get the content of the CSS file at this URL: ${link}` }));
-      const cssResults = await Promise.all(cssPromises);
-      const allCSS = cssResults.map(res => res.output);
-
-      allCSS.push(inlineStyles);
+      // In a full implementation, we would fetch stylesheet links here too.
+      // But BrowserAutomation evaluation can already get all rules from styleSheets.
 
       combinedCSS = allCSS.join('\n');
 

@@ -22,8 +22,8 @@ import { existsSync } from 'fs';
 export interface GenerateMarketingSiteInput {
   /** Path to the product codebase to analyze */
   product_path: string;
-  /** Inspiration source - URL or brand name to deeply analyze for visual style */
-  inspiration: string;
+  /** Inspiration source(s) - URL or brand name, or comma-separated list of sources to synthesize */
+  inspiration: string | string[];
   /** Product name (auto-detected if not provided) */
   product_name?: string;
   /** Brief product description (auto-detected if not provided) */
@@ -356,9 +356,15 @@ export async function handleGenerateMarketingSite(
     productInsights.description = input.product_description;
   }
 
-  // Step 2: Analyze inspiration source for visual style
+  // Step 2: Analyze inspiration source(s) for visual style
+  const sources = Array.isArray(inspiration)
+    ? inspiration
+    : inspiration.includes(',')
+      ? inspiration.split(',').map(s => s.trim())
+      : [inspiration];
+
   const inspirationResult = await handleApplyInspiration({
-    sources: [inspiration],
+    sources,
     base_tuners: input.tuners,
   });
 
@@ -427,13 +433,11 @@ export async function handleGenerateMarketingSite(
   ];
 
   // Build style summary
-  const styleSummary = `${inspiration} inspired design with ${
-    tuners.abstraction > 0.5 ? 'minimal, geometric' : 'concrete, approachable'
-  } aesthetics, ${
-    tuners.density > 0.5 ? 'compact' : 'spacious'
-  } layout, and ${
-    tuners.motion > 0.5 ? 'rich animations' : 'subtle transitions'
-  }`;
+  const sourceNames = sources.join(', ');
+  const styleSummary = `${sourceNames} inspired design with ${tuners.abstraction > 0.5 ? 'minimal, geometric' : 'concrete, approachable'
+    } aesthetics, ${tuners.density > 0.5 ? 'compact' : 'spacious'
+    } layout, and ${tuners.motion > 0.5 ? 'rich animations' : 'subtle transitions'
+    }`;
 
   return {
     pages: [
@@ -459,7 +463,7 @@ export async function handleGenerateMarketingSite(
       key_files: productInsights.keyFiles,
     },
     inspiration_analysis: {
-      source: inspiration,
+      source: sourceNames,
       style_summary: styleSummary,
       colors: inspirationResult.css_variables,
       typography: inspirationResult.profile.typography?.headingFont?.[0] || 'System',
@@ -469,7 +473,7 @@ export async function handleGenerateMarketingSite(
     css_variables: landingPage.cssVariables,
     tailwind_config: landingPage.tailwindConfig,
     file_structure: fileStructure,
-    explanation: `Generated a complete marketing site for "${productInsights.name}" inspired by ${inspiration}.
+    explanation: `Generated a complete marketing site for "${productInsights.name}" inspired by a synthesis of ${sourceNames}.
 
 **Product Analysis:**
 - Detected ${productInsights.features.length} key features from your codebase

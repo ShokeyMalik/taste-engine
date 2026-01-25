@@ -396,7 +396,75 @@ export class InspirationProfileBuilder {
 
     return this.profile as InspirationProfile;
   }
+
+  /**
+   * Create a builder from an ExtractedDesignLanguage
+   */
+  static fromExtracted(ext: any): InspirationProfileBuilder {
+    const builder = new InspirationProfileBuilder(`From ${ext.source.value}`);
+
+    // Heuristic mapping
+    builder.colors({
+      primary: ext.colors.primary[0] || '#3B82F6',
+      primaryForeground: '#FFFFFF',
+      secondary: ext.colors.secondary[0] || '#6B7280',
+      secondaryForeground: '#FFFFFF',
+      accent: ext.colors.accent[0] || '#8B5CF6',
+      accentForeground: '#FFFFFF',
+      background: { light: ext.colors.background[0] || '#FFFFFF', dark: ext.colors.background[2] || '#0A0A0A' },
+      foreground: { light: ext.colors.text[0] || '#0A0A0A', dark: '#FAFAFA' },
+      surface: { light: ext.colors.background[1] || '#F4F4F5', dark: '#18181B' },
+      muted: { light: '#F4F4F5', dark: '#27272A' },
+      mutedForeground: { light: ext.colors.text[1] || '#71717A', dark: '#A1A1AA' },
+      border: { light: '#E4E4E7', dark: '#27272A' },
+      gradients: ext.colors.gradients.map((g: string, i: number) => ({
+        id: `grad-${i}`,
+        type: 'linear',
+        cssValue: g,
+        stops: []
+      })),
+    });
+
+    builder.typography({
+      headingFont: ext.typography.fontStack,
+      bodyFont: ext.typography.fontStack,
+      monoFont: ['JetBrains Mono', 'monospace'],
+      scale: 'normal',
+      headingWeight: 'semibold',
+      bodyWeight: 'normal',
+      letterSpacing: 'normal',
+      lineHeight: 'normal',
+    });
+
+    builder.motion({
+      level: ext.motion.level === 'minimal' ? 'subtle' : ext.motion.level,
+      duration: { fast: 150, normal: ext.motion.duration || 200, slow: 400 },
+      easing: ext.motion.easing || 'ease-out',
+      entranceStyle: 'fade',
+      hoverEffects: true,
+      scrollAnimations: true,
+    });
+
+    builder.componentStyles({
+      borderRadius: ext.components.borderRadius || 'md',
+      shadow: ext.components.shadows === 'dramatic' ? 'dramatic' : 'subtle',
+      border: 'subtle',
+      buttonStyle: ext.components.buttonStyle || 'solid',
+      cardStyle: ext.components.cardStyle || 'bordered',
+      inputStyle: 'bordered',
+      avatarStyle: 'circle',
+    });
+
+    return builder;
+  }
 }
+
+// =============================================================================
+// EXPORTS
+// =============================================================================
+
+export { InspirationProfileBuilder as ProfileBuilder };
+
 
 // =============================================================================
 // DEFAULT VALUES
@@ -616,8 +684,4 @@ export function deserializeProfile(json: string): InspirationProfile {
   return parsed as InspirationProfile;
 }
 
-// =============================================================================
-// EXPORTS
-// =============================================================================
 
-export { InspirationProfileBuilder as ProfileBuilder };
