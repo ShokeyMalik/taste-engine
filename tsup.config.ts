@@ -14,7 +14,7 @@ export default defineConfig([
     sourcemap: true,
     clean: true,
     treeshake: true,
-    external: ['react', 'react-dom'],
+    external: ['react', 'react-dom', 'playwright', 'playwright-core'],
     esbuildOptions(options) {
       options.banner = {
         js: '/* @taste-engine/core - Context-aware design system */',
@@ -33,8 +33,8 @@ export default defineConfig([
     treeshake: true,
     platform: 'node',
     target: 'node18',
-    noExternal: [/.*/],  // Bundle everything
-    external: ['@modelcontextprotocol/sdk'],
+    noExternal: [/^((?!playwright|playwright-core|chromium-bidi).)*$/],  // Bundle everything EXCEPT playwright
+    external: ['@modelcontextprotocol/sdk', 'playwright', 'playwright-core', 'chromium-bidi'],
     esbuildOptions(options) {
       options.banner = {
         js: '#!/usr/bin/env node\n/* Taste Engine MCP Server */',

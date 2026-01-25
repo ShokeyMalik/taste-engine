@@ -581,7 +581,7 @@ export class InspirationScanner {
     // This is a heuristic-based mapping from the raw analysis to the structured design language.
     // It can be improved with more sophisticated analysis.
     const primaryColor = analysis.extractedColors.accents[0] || analysis.extractedColors.texts[0] || '#000000';
-    
+
     // Determine motion level
     let motionLevel: 'minimal' | 'subtle' | 'expressive' = 'subtle';
     if (analysis.extractedMotion.libraries.includes('GSAP') || analysis.extractedMotion.libraries.includes('Framer Motion')) {
@@ -625,7 +625,7 @@ export class InspirationScanner {
         shadows: 'subtle', // Needs heuristic from analysis.extractedComponents.shadows
       },
       motion: {
-        level: motionLevel, 
+        level: motionLevel,
         duration: 200, // Needs heuristic
         easing: 'ease-out', // Needs heuristic
       },
@@ -808,7 +808,7 @@ export class PatternLearner {
   private buildTypographyTokens(ext: ExtractedDesignLanguage): LearnedTasteProfile['designLanguage']['typography'] {
     const fontFamily = ext.typography.fontStack.join(', ');
     const tracking = ext.typography.tracking === 'tight' ? '-0.025em' :
-                     ext.typography.tracking === 'wide' ? '0.05em' : '0';
+      ext.typography.tracking === 'wide' ? '0.05em' : '0';
 
     return {
       '--taste-font-heading': fontFamily,
@@ -846,20 +846,20 @@ export class PatternLearner {
 
   private buildRecipes(ext: ExtractedDesignLanguage): LearnedTasteProfile['recipes'] {
     const radius = ext.components.borderRadius === 'none' ? 'rounded-none' :
-                   ext.components.borderRadius === 'sm' ? 'rounded' :
-                   ext.components.borderRadius === 'lg' ? 'rounded-xl' :
-                   ext.components.borderRadius === 'full' ? 'rounded-full' : 'rounded-lg';
+      ext.components.borderRadius === 'sm' ? 'rounded' :
+        ext.components.borderRadius === 'lg' ? 'rounded-xl' :
+          ext.components.borderRadius === 'full' ? 'rounded-full' : 'rounded-lg';
 
     const shadow = ext.components.shadows === 'none' ? '' :
-                   ext.components.shadows === 'subtle' ? 'shadow-sm' :
-                   ext.components.shadows === 'dramatic' ? 'shadow-xl' : 'shadow-md';
+      ext.components.shadows === 'subtle' ? 'shadow-sm' :
+        ext.components.shadows === 'dramatic' ? 'shadow-xl' : 'shadow-md';
 
     const transition = ext.motion.level === 'minimal' ? 'transition-colors duration-150' :
-                       ext.motion.level === 'expressive' ? 'transition-all duration-300' :
-                       'transition-all duration-200';
+      ext.motion.level === 'expressive' ? 'transition-all duration-300' :
+        'transition-all duration-200';
 
     const padding = ext.spacing.scale === 'tight' ? 'px-3 py-1.5' :
-                    ext.spacing.scale === 'spacious' ? 'px-6 py-3' : 'px-4 py-2';
+      ext.spacing.scale === 'spacious' ? 'px-6 py-3' : 'px-4 py-2';
 
     const buttonBase = `inline-flex items-center justify-center font-medium ${radius} ${transition}`;
 
@@ -868,8 +868,8 @@ export class PatternLearner {
         primary: ext.components.buttonStyle === 'gradient'
           ? `${buttonBase} ${padding} bg-gradient-to-r from-primary to-accent text-white hover:opacity-90`
           : ext.components.buttonStyle === 'ghost'
-          ? `${buttonBase} ${padding} bg-transparent hover:bg-accent/10 text-accent`
-          : `${buttonBase} ${padding} bg-accent text-white hover:bg-accent/90 ${shadow}`,
+            ? `${buttonBase} ${padding} bg-transparent hover:bg-accent/10 text-accent`
+            : `${buttonBase} ${padding} bg-accent text-white hover:bg-accent/90 ${shadow}`,
         secondary: `${buttonBase} ${padding} bg-secondary text-secondary-foreground hover:bg-secondary/80`,
         ghost: `${buttonBase} ${padding} bg-transparent hover:bg-accent/10 text-foreground`,
       },
@@ -877,10 +877,10 @@ export class PatternLearner {
         base: ext.components.cardStyle === 'flat'
           ? `bg-surface ${radius} p-4`
           : ext.components.cardStyle === 'bordered'
-          ? `bg-surface border border-border ${radius} p-4`
-          : ext.components.cardStyle === 'glass'
-          ? `bg-surface/80 backdrop-blur-sm border border-border/50 ${radius} p-4`
-          : `bg-surface ${radius} ${shadow} p-4`,
+            ? `bg-surface border border-border ${radius} p-4`
+            : ext.components.cardStyle === 'glass'
+              ? `bg-surface/80 backdrop-blur-sm border border-border/50 ${radius} p-4`
+              : `bg-surface ${radius} ${shadow} p-4`,
         elevated: `bg-surface ${radius} shadow-lg p-6`,
         interactive: `bg-surface ${radius} ${shadow} p-4 ${transition} hover:shadow-lg cursor-pointer`,
       },
@@ -1182,3 +1182,5 @@ export * from './url-analyzer';
 // Re-export knowledge base (persistent learning)
 export * from './knowledge-base';
 
+// Re-export MiroMiro extraction (design tokens + assets)
+export * from './miromiro';

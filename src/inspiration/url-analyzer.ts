@@ -105,7 +105,7 @@ export class URLAnalyzer {
       const htmlResult = await web_fetch({ prompt: `Get the complete, unsummarized HTML source code of the page at this URL: ${url}` });
       let htmlContent = htmlResult.output;
       let combinedCSS = '';
-      
+
       // Basic check to see if it's likely a summarized version
       // A full HTML document should start with <!DOCTYPE html> or <html>
       const isSummarized = !htmlContent.trim().startsWith('<!DOCTYPE html>') && !htmlContent.trim().startsWith('<html');
@@ -134,9 +134,9 @@ export class URLAnalyzer {
       allCSS.push(inlineStyles);
 
       combinedCSS = allCSS.join('\n');
-      
+
       const rawContentResult = await analyzeRawContent(htmlContent, combinedCSS, url);
-      
+
       return { ...rawContentResult, url, success: true };
 
 
@@ -165,7 +165,7 @@ export class URLAnalyzer {
     return links;
   }
 
-  private extractInlineStyles(html: string): string {
+  public extractInlineStyles(html: string): string {
     const styles: string[] = [];
     const styleRegex = /<style[^>]*?>([\s\S]*?)<\/style>/g;
     let match;
@@ -175,7 +175,7 @@ export class URLAnalyzer {
     return styles.join('\n');
   }
 
-  private extractImages(html: string, css: string, baseUrl: string): string[] {
+  public extractImages(html: string, css: string, baseUrl: string): string[] {
     const imageUrls = new Set<string>();
 
     // Extract from <img> tags
@@ -185,7 +185,7 @@ export class URLAnalyzer {
     let match;
     while ((match = imgTagRegex.exec(html)) !== null) {
       const imgTag = match[0];
-      
+
       const srcMatch = imgTag.match(srcRegex);
       if (srcMatch) {
         try {
@@ -237,7 +237,7 @@ export class URLAnalyzer {
     return [...imageUrls];
   }
 
-  private extractSVGs(html: string): string[] {
+  public extractSVGs(html: string): string[] {
     const svgs = new Set<string>();
     const svgRegex = /<svg[^>]*?>[\s\S]*?<\/svg>/g;
     let match;
@@ -246,8 +246,8 @@ export class URLAnalyzer {
     }
     return [...svgs];
   }
-  
-  private extractMotion(html: string, css: string): { libraries: string[], animationTypes: string[] } {
+
+  public extractMotion(html: string, css: string): { libraries: string[], animationTypes: string[] } {
     const libraries = new Set<string>();
     const animationTypes = new Set<string>();
 
@@ -288,7 +288,7 @@ export class URLAnalyzer {
 
     return { libraries: [...libraries], animationTypes: [...animationTypes] };
   }
-  
+
   parseCSS(cssContent: string): Partial<URLAnalysisResult> {
     const result: Partial<URLAnalysisResult> = {
       extractedColors: { backgrounds: [], texts: [], accents: [], borders: [] },
@@ -308,7 +308,7 @@ export class URLAnalyzer {
     const colors = this.extractPropertyValues(cssContent, /color\s*:/g);
     const backgroundColors = this.extractPropertyValues(cssContent, /background-color\s*:/g);
     const borderColors = this.extractPropertyValues(cssContent, /border-color\s*:/g);
-    
+
     const allColors = [...colors, ...backgroundColors, ...borderColors];
     const uniqueColors = [...new Set(allColors.map(c => c.toLowerCase()))];
 
@@ -321,7 +321,7 @@ export class URLAnalyzer {
     result.extractedTypography!.fontSizes = [...new Set(this.extractPropertyValues(cssContent, /font-size\s*:/g))];
     result.extractedTypography!.fontWeights = [...new Set(this.extractPropertyValues(cssContent, /font-weight\s*:/g))];
     result.extractedTypography!.lineHeights = [...new Set(this.extractPropertyValues(cssContent, /line-height\s*:/g))];
-    
+
     result.extractedSpacing!.paddings = [...new Set(this.extractPropertyValues(cssContent, /padding\s*:/g))];
     result.extractedSpacing!.margins = [...new Set(this.extractPropertyValues(cssContent, /margin\s*:/g))];
     result.extractedSpacing!.gaps = [...new Set(this.extractPropertyValues(cssContent, /gap\s*:/g))];
@@ -692,7 +692,7 @@ export class SelectiveInspirationMerger {
       result.typography.fontStack = typoSource.extractedTypography.fontFamilies;
       // Infer heading style from font weights
       const hasHeavy = typoSource.extractedTypography.fontWeights.includes('700') ||
-                       typoSource.extractedTypography.fontWeights.includes('800');
+        typoSource.extractedTypography.fontWeights.includes('800');
       result.typography.headingStyle = hasHeavy ? 'bold' : 'medium';
     }
 

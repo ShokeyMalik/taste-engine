@@ -288,6 +288,73 @@ export {
 } from './visual-assets';
 
 // =============================================================================
+// MIROMIRO EXTRACTION (v0.6.0 - Design Token & Asset Extraction)
+// =============================================================================
+
+export type {
+  // Design token types (note: DesignTokens from analyzer is different from MiroMiro DesignTokens)
+  // Renamed to avoid conflicts
+  MiromiroDesignTokens,
+  MiromiroColorPalette,
+  ColorToken,
+  TypographySystem,
+  TypographyToken,
+  SpacingScale,
+  SpacingToken,
+  ShadowSystem,
+  ShadowToken,
+  BorderSystem,
+  BorderToken,
+  RadiusToken,
+
+  // Asset types
+  ExtractedAssets,
+  ImageAsset,
+  SVGAsset,
+  VideoAsset,
+  LottieAsset,
+  IconAsset,
+  Asset,
+
+  // Style inspection types
+  ComputedStyles,
+  HoverStyles,
+  AnimationStyles,
+  ResponsiveStyles,
+  ElementStyles,
+
+  // Accessibility types
+  ContrastResult,
+  WCAGResult,
+  Recommendation as MiromiroRecommendation,
+  AccessibilityReport,
+
+  // Extraction types
+  ExtractionOptions,
+  ExtractionResult,
+} from './inspiration';
+
+export {
+  // Browser automation
+  BrowserAutomation,
+  withBrowser,
+
+  // Design token extraction
+  extractDesignTokens,
+  exportAsCSSVariables,
+  exportAsTailwindConfig,
+
+  // Asset extraction
+  extractAssets,
+  categorizeAssets,
+
+  // Main extraction interface
+  extractAll,
+  quickExtract,
+  exportTokens,
+} from './inspiration';
+
+// =============================================================================
 // BLOCK REGISTRY (v1.0.0 - UI Intelligence Layer)
 // =============================================================================
 
