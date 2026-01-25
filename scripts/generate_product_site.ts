@@ -26,18 +26,25 @@ async function main() {
         });
 
         // The tool returns React code for pages and blocks. 
-        // For a simple verification, we'll concatenate the blocks into a "preview" HTML-like structure 
-        // or just save the primary page code as a .tsx file and also generate a readable summary.
+        const desktopPath = path.join(process.env.HOME || '', 'Desktop');
+        const mainPagePath = path.join(desktopPath, 'taste-engine-premium-landing.tsx');
+        fs.writeFileSync(mainPagePath, result.pages[0].page_code);
 
-        const outputPath = path.join(projectRoot, 'taste-engine-product-preview.tsx');
-        fs.writeFileSync(outputPath, result.pages[0].page_code);
+        console.log(`✅ Main page shell saved to: ${mainPagePath}`);
 
-        console.log(`✅ Success! Product landing page logic generated at: ${outputPath}`);
+        // Save all individual block components
+        console.log(`📦 Saving high-fidelity block components...`);
+        const componentsDir = path.join(desktopPath, 'taste-engine-blocks');
+        if (!fs.existsSync(componentsDir)) fs.mkdirSync(componentsDir);
+
+        result.pages[0].blocks.forEach(block => {
+            const blockPath = path.join(componentsDir, block.file_name);
+            fs.writeFileSync(blockPath, block.code);
+            console.log(`   - ${block.component_name} saved`);
+        });
+
+        console.log(`\n🎉 DONE! You can now inspect the full "super solid" code on your Desktop in the 'taste-engine-blocks' folder.`);
         console.log(`📝 Explanation: ${result.explanation}`);
-
-        // Also generate a simple static HTML version for immediate viewing if possible
-        // Since we can't easily compile React here without a build step, 
-        // we'll just provide the TSX for now and a detailed success message.
 
     } catch (error) {
         console.error(`❌ Generation failed:`, error);

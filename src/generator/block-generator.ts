@@ -17,7 +17,13 @@ import type { InspirationProfile } from '../inspiration/inspiration-profile';
 import type { ShadcnConfig } from '../integrations/shadcn/types';
 
 import { getBlockRegistry } from '../blocks/registry';
-import { generateHeroTemplate, generateFeaturesTemplate } from '../blocks/templates/landing';
+import {
+  generateHeroTemplate,
+  generateFeaturesTemplate,
+  generateNavigationTemplate,
+  generateLogoCloudTemplate,
+  generatePricingTemplate
+} from '../blocks/templates/landing';
 import { generateSidebarTemplate, generateMetricCardsTemplate, generateDataTableTemplate } from '../blocks/templates/dashboard';
 import { generateAuthTemplate, generateEmptyStateTemplate, generateErrorPageTemplate, generateLoadingTemplate } from '../blocks/templates/shared';
 import { ShadcnComponentKnowledge } from '../integrations/shadcn/components';
@@ -46,6 +52,7 @@ interface InternalGenerationInput {
   context: 'marketing' | 'product';
   inspirationProfile?: InspirationProfile;
   tuners: AppliedTuners;
+  content?: any;
   componentLibrary?: ComponentLibrary;
 }
 
@@ -113,6 +120,7 @@ export class BlockGenerator {
       context: input.context,
       inspirationProfile: this.config.defaultProfile,
       tuners: input.tuners || this.config.defaultTuners || DEFAULT_TUNERS,
+      content: input.content,
       componentLibrary: input.componentLibrary || this.config.defaultLibrary,
     };
 
@@ -210,6 +218,7 @@ export class BlockGenerator {
       variant: input.variant,
       context: input.context,
       tuners: input.tuners,
+      content: input.content,
       componentLibrary: input.componentLibrary,
     };
 
@@ -221,12 +230,15 @@ export class BlockGenerator {
       case 'features':
         return this.extractTemplateOutput(generateFeaturesTemplate(templateInput));
       case 'navigation':
+        return this.extractTemplateOutput(generateNavigationTemplate(templateInput));
+      case 'logo-cloud':
+        return this.extractTemplateOutput(generateLogoCloudTemplate(templateInput));
       case 'pricing':
+        return this.extractTemplateOutput(generatePricingTemplate(templateInput));
       case 'testimonials':
       case 'faq':
       case 'cta':
       case 'footer':
-      case 'logo-cloud':
       case 'stats':
         return this.generatePlaceholder(input);
 

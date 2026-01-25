@@ -28,7 +28,7 @@ import {
 export function generateHeroTemplate(
   input: BlockGenerationInput
 ): BlockGenerationOutput {
-  const { variant, tuners, componentLibrary } = input;
+  const { variant, tuners, componentLibrary, content } = input;
   const componentName = generateComponentName('hero', variant);
 
   let code: string;
@@ -36,22 +36,22 @@ export function generateHeroTemplate(
 
   switch (variant) {
     case 'centered':
-      code = generateHeroCentered(tuners, undefined, componentLibrary);
+      code = generateHeroCentered(tuners, undefined, componentLibrary, content);
       break;
     case 'split':
-      code = generateHeroSplit(tuners, undefined, componentLibrary);
+      code = generateHeroSplit(tuners, undefined, componentLibrary, content);
       break;
     case 'gradient-orbs':
-      code = generateHeroGradientOrbs(tuners, undefined, componentLibrary);
+      code = generateHeroGradientOrbs(tuners, undefined, componentLibrary, content);
       break;
     case 'video-bg':
-      code = generateHeroVideoBg(tuners, undefined, componentLibrary);
+      code = generateHeroVideoBg(tuners, undefined, componentLibrary, content);
       break;
     case 'minimal':
-      code = generateHeroMinimal(tuners, undefined, componentLibrary);
+      code = generateHeroMinimal(tuners, undefined, componentLibrary, content);
       break;
     default:
-      code = generateHeroCentered(tuners, undefined, componentLibrary);
+      code = generateHeroCentered(tuners, undefined, componentLibrary, content);
   }
 
   if (componentLibrary === 'shadcn') {
@@ -72,7 +72,8 @@ export function generateHeroTemplate(
 function generateHeroCentered(
   tuners: AppliedTuners,
   profile?: InspirationProfile,
-  library?: string
+  library?: string,
+  content?: any
 ): string {
   const buttonImport = library === 'shadcn'
     ? 'import { Button } from "@/components/ui/button";'
@@ -142,7 +143,8 @@ export function HeroCentered({
 function generateHeroSplit(
   tuners: AppliedTuners,
   profile?: InspirationProfile,
-  library?: string
+  library?: string,
+  content?: any
 ): string {
   const buttonImport = library === 'shadcn'
     ? 'import { Button } from "@/components/ui/button";'
@@ -217,7 +219,8 @@ export function HeroSplit({
 function generateHeroGradientOrbs(
   tuners: AppliedTuners,
   profile?: InspirationProfile,
-  library?: string
+  library?: string,
+  content?: any
 ): string {
   const buttonImport = library === 'shadcn'
     ? 'import { Button } from "@/components/ui/button";'
@@ -234,10 +237,10 @@ interface HeroGradientOrbsProps {
 }
 
 export function HeroGradientOrbs({
-  title = "${placeholders.heading(1)}",
-  description = "${placeholders.paragraph('medium')}",
-  primaryCta = "${placeholders.button('primary')}",
-  secondaryCta = "${placeholders.button('secondary')}",
+  title = "${content?.headline || placeholders.heading(1)}",
+  description = "${content?.subheadline || placeholders.paragraph('medium')}",
+  primaryCta = "${content?.cta_primary || placeholders.button('primary')}",
+  secondaryCta = "${content?.cta_secondary || placeholders.button('secondary')}",
 }: HeroGradientOrbsProps) {
   return (
     <section className="relative ${getSpacingClasses(tuners.density, 'section')} overflow-hidden">
@@ -286,7 +289,8 @@ export function HeroGradientOrbs({
 function generateHeroVideoBg(
   tuners: AppliedTuners,
   profile?: InspirationProfile,
-  library?: string
+  library?: string,
+  content?: any
 ): string {
   const buttonImport = library === 'shadcn'
     ? 'import { Button } from "@/components/ui/button";'
@@ -355,7 +359,8 @@ export function HeroVideoBg({
 function generateHeroMinimal(
   tuners: AppliedTuners,
   profile?: InspirationProfile,
-  library?: string
+  library?: string,
+  content?: any
 ): string {
   const buttonImport = library === 'shadcn'
     ? 'import { Button } from "@/components/ui/button";'
@@ -407,7 +412,7 @@ export function HeroMinimal({
 export function generateFeaturesTemplate(
   input: BlockGenerationInput
 ): BlockGenerationOutput {
-  const { variant, tuners, componentLibrary } = input;
+  const { variant, tuners, componentLibrary, content } = input;
   const componentName = generateComponentName('features', variant);
 
   let code: string;
@@ -415,20 +420,20 @@ export function generateFeaturesTemplate(
 
   switch (variant) {
     case 'grid':
-      code = generateFeaturesGrid(tuners, undefined, componentLibrary);
+      code = generateFeaturesGrid(tuners, undefined, componentLibrary, content);
       break;
     case 'alternating':
-      code = generateFeaturesAlternating(tuners, undefined, componentLibrary);
+      code = generateFeaturesAlternating(tuners, undefined, componentLibrary, content);
       break;
     case 'cards':
-      code = generateFeaturesCards(tuners, undefined, componentLibrary);
+      code = generateFeaturesCards(tuners, undefined, componentLibrary, content);
       if (componentLibrary === 'shadcn') dependencies.push('@/components/ui/card');
       break;
     case 'centered':
-      code = generateFeaturesCentered(tuners, undefined, componentLibrary);
+      code = generateFeaturesCentered(tuners, undefined, componentLibrary, content);
       break;
     default:
-      code = generateFeaturesGrid(tuners, undefined, componentLibrary);
+      code = generateFeaturesGrid(tuners, undefined, componentLibrary, content);
   }
 
   return {
@@ -445,7 +450,8 @@ export function generateFeaturesTemplate(
 function generateFeaturesGrid(
   tuners: AppliedTuners,
   profile?: InspirationProfile,
-  library?: string
+  library?: string,
+  content?: any
 ): string {
   return `${getLucideImport(['Zap', 'Shield', 'Clock', 'Star', 'Check', 'ArrowRight'])}
 
@@ -471,9 +477,16 @@ const defaultFeatures: Feature[] = [
 ];
 
 export function FeaturesGrid({
-  title = "${placeholders.heading(2)}",
-  description = "${placeholders.paragraph('medium')}",
-  features = defaultFeatures,
+  title = "${content?.headline || placeholders.heading(2)}",
+  description = "${content?.subheadline || placeholders.paragraph('medium')}",
+  features = ${content ? JSON.stringify([
+    { icon: 'Zap', title: content.feature_1, description: content.feature_1_description },
+    { icon: 'Shield', title: content.feature_2, description: content.feature_2_description },
+    { icon: 'Clock', title: content.feature_3, description: content.feature_3_description },
+    { icon: 'Star', title: "Highly Customizable", description: "Tailor every detail to your brand's unique needs." },
+    { icon: 'Check', title: "Production Ready", description: "Battle-tested components ready for immediate deployment." },
+    { icon: 'ArrowRight', title: "Scalable Architecture", description: "Designed to grow with your product complexity." }
+  ], null, 2).replace(/"icon": "([^"]+)"/g, 'icon: <$1 className="h-6 w-6" />') : 'defaultFeatures'},
 }: FeaturesGridProps) {
   return (
     <section className="${getSpacingClasses(tuners.density, 'section')} bg-muted/30">
@@ -512,7 +525,8 @@ export function FeaturesGrid({
 function generateFeaturesAlternating(
   tuners: AppliedTuners,
   profile?: InspirationProfile,
-  library?: string
+  library?: string,
+  content?: any
 ): string {
   return `${getLucideImport(['CheckCircle'])}
 
@@ -593,7 +607,8 @@ export function FeaturesAlternating({
 function generateFeaturesCards(
   tuners: AppliedTuners,
   profile?: InspirationProfile,
-  library?: string
+  library?: string,
+  content?: any
 ): string {
   const cardImport = library === 'shadcn'
     ? 'import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";'
@@ -662,7 +677,8 @@ export function FeaturesCards({
 function generateFeaturesCentered(
   tuners: AppliedTuners,
   profile?: InspirationProfile,
-  library?: string
+  library?: string,
+  content?: any
 ): string {
   return `${getLucideImport(['Zap', 'Shield', 'Clock'])}
 
@@ -724,11 +740,157 @@ export function FeaturesCentered({
 }
 
 // =============================================================================
+// NAVIGATION TEMPLATES
+// =============================================================================
+
+export function generateNavigationTemplate(input: BlockGenerationInput): BlockGenerationOutput {
+  const { variant, tuners, componentLibrary, content } = input;
+  const componentName = generateComponentName('navigation', variant);
+  const code = `
+import { Github, Twitter } from "lucide-react";
+import { Button } from "@/components/ui/button";
+
+export function ${componentName}() {
+  return (
+    <nav className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="container flex h-16 items-center justify-between">
+        <div className="flex items-center gap-8">
+          <a className="flex items-center space-x-2" href="/">
+            <span className="font-bold inline-block">Taste Engine</span>
+          </a>
+          <div className="hidden md:flex gap-6">
+            <a className="text-sm font-medium transition-colors hover:text-primary" href="#features">Features</a>
+            <a className="text-sm font-medium transition-colors hover:text-primary" href="#pricing">Pricing</a>
+            <a className="text-sm font-medium transition-colors hover:text-primary" href="#docs">Docs</a>
+          </div>
+        </div>
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon">
+            <Twitter className="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" size="icon">
+             <Github className="h-4 w-4" />
+          </Button>
+          <Button>Get Started</Button>
+        </div>
+      </div>
+    </nav>
+  );
+}
+`;
+  return {
+    code,
+    componentName,
+    fileName: generateFileName(componentName),
+    dependencies: ['lucide-react', '@/components/ui/button'],
+    slots: {},
+    variantUsed: variant,
+    explanation: 'Sticky navigation with logo and links.',
+  };
+}
+
+// =============================================================================
+// LOGO CLOUD TEMPLATES
+// =============================================================================
+
+export function generateLogoCloudTemplate(input: BlockGenerationInput): BlockGenerationOutput {
+  const { variant, tuners, componentLibrary, content } = input;
+  const componentName = generateComponentName('logo-cloud', variant);
+  const code = `
+export function ${componentName}() {
+  return (
+    <section className="py-12 bg-muted/50">
+      <div className="container">
+        <p className="text-center text-sm font-semibold text-muted-foreground uppercase tracking-widest mb-8">
+          Trusted by high-performance teams
+        </p>
+        <div className="flex flex-wrap justify-center gap-12 grayscale opacity-50">
+           <span className="text-2xl font-black italic">VERCEL</span>
+           <span className="text-2xl font-black italic">STRIPE</span>
+           <span className="text-2xl font-black italic">LINEAR</span>
+           <span className="text-2xl font-black italic">GITHUB</span>
+           <span className="text-2xl font-black italic">NOTION</span>
+        </div>
+      </div>
+    </section>
+  );
+}
+`;
+  return {
+    code,
+    componentName,
+    fileName: generateFileName(componentName),
+    dependencies: [],
+    slots: {},
+    variantUsed: variant,
+    explanation: 'Simple logo cloud showcase.',
+  };
+}
+
+// =============================================================================
+// PRICING TEMPLATES
+// =============================================================================
+
+export function generatePricingTemplate(input: BlockGenerationInput): BlockGenerationOutput {
+  const { variant, tuners, componentLibrary, content } = input;
+  const componentName = generateComponentName('pricing', variant);
+  const code = `
+import { Check } from "lucide-react";
+import { Button } from "@/components/ui/button";
+
+export function ${componentName}() {
+  return (
+    <section className="py-24" id="pricing">
+      <div className="container px-4 md:px-6">
+        <div className="text-center mb-16">
+          <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl">Simple, transparent pricing</h2>
+          <p className="mt-4 text-muted-foreground">Start free, scale as you grow.</p>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+          {["Free", "Pro", "Enterprise"].map((tier, i) => (
+            <div key={tier} className={"rounded-3xl border p-8 flex flex-col " + (i === 1 ? 'border-primary shadow-xl ring-1 ring-primary' : '')}>
+              <h3 className="text-xl font-bold">{tier}</h3>
+              <div className="mt-4 flex items-baseline gap-1">
+                <span className="text-4xl font-bold">$\{i === 0 ? '0' : i === 1 ? '49' : '99'}</span>
+                <span className="text-muted-foreground">/mo</span>
+              </div>
+              <ul className="mt-8 space-y-4 flex-1">
+                 {["Unlimited Extraction", "Vibe Context Sync", "MCP Access"].map(item => (
+                   <li key={item} className="flex items-center gap-2">
+                     <Check className="h-4 w-4 text-primary" />
+                     <span className="text-sm">{item}</span>
+                   </li>
+                 ))}
+              </ul>
+              <Button className="mt-8" variant={i === 1 ? "default" : "outline"}>Get Started</Button>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+`;
+  return {
+    code,
+    componentName,
+    fileName: generateFileName(componentName),
+    dependencies: ['lucide-react', '@/components/ui/button'],
+    slots: {},
+    variantUsed: variant,
+    explanation: 'Three-tier pricing grid.',
+  };
+}
+
+// =============================================================================
 // EXPORT ALL LANDING TEMPLATES
 // =============================================================================
 
 export const landingTemplates = {
   hero: generateHeroTemplate,
   features: generateFeaturesTemplate,
-  // Additional templates would be added here
+  navigation: generateNavigationTemplate,
+  'logo-cloud': generateLogoCloudTemplate,
+  pricing: generatePricingTemplate,
 };
+
