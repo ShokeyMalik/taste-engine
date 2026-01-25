@@ -45,6 +45,11 @@ export class BrowserAutomation {
         });
 
         this.page = await this.context.newPage();
+
+        // Polyfill __name for transpiled code (esbuild/tsup helper)
+        await this.page.addInitScript(() => {
+            (window as any).__name = (f: any) => f;
+        });
     }
 
     /**
@@ -55,12 +60,22 @@ export class BrowserAutomation {
             throw new Error('Browser not launched. Call launch() first.');
         }
 
-        const { waitUntil = 'networkidle', timeout = 30000, waitForSelector } = options;
+        const { waitUntil = 'domcontentloaded', timeout = 60000, waitForSelector } = options;
 
-        await this.page.goto(url, { waitUntil, timeout });
+        try {
+            await this.page.goto(url, { waitUntil, timeout });
+            // Small fixed wait for dynamic styles/overlays
+            await this.page.waitForTimeout(2000);
+        } catch (e) {
+            console.warn(`Navigation to ${url} timed out/failed, attempting to proceed anyway...`);
+        }
 
         if (waitForSelector) {
-            await this.page.waitForSelector(waitForSelector, { timeout });
+            try {
+                await this.page.waitForSelector(waitForSelector, { timeout: 10000 });
+            } catch (e) {
+                console.warn(`Wait for selector ${waitForSelector} failed, proceeding...`);
+            }
         }
     }
 
