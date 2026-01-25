@@ -6,18 +6,18 @@
 import type { ExtractionResult, MiromiroDesignTokens, ExtractedAssets, AccessibilityReport, ComponentPattern } from './miromiro-types';
 
 export class DesignReportGenerator {
-  /**
-   * Generate a complete, interactive Developer Design Explorer
-   */
-  generateHTML(data: ExtractionResult): string {
-    const { url, extractedAt } = data.metadata;
-    const tokens = data.tokens;
-    const assets = data.assets;
-    const accessibility = data.accessibility;
-    const patterns = data.patterns;
-    const motion = data.motion;
+    /**
+     * Generate a complete, interactive Developer Design Explorer
+     */
+    generateHTML(data: ExtractionResult): string {
+        const { url, extractedAt } = data.metadata;
+        const tokens = data.tokens;
+        const assets = data.assets;
+        const accessibility = data.accessibility;
+        const patterns = data.patterns;
+        const motion = data.motion;
 
-    return `
+        return `
 <!DOCTYPE html>
 <html lang="en" class="dark">
 <head>
@@ -55,6 +55,14 @@ export class DesignReportGenerator {
     ::-webkit-scrollbar-track { background: #0f172a; }
     ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
     ::-webkit-scrollbar-thumb:hover { background: #475569; }
+    
+    /* Animation Preview Container */
+    .animation-preview:hover .animate-target {
+        animation-play-state: running !important;
+    }
+    .animate-target {
+        animation-play-state: paused;
+    }
   </style>
 </head>
 <body class="bg-surface text-slate-100 font-sans antialiased overflow-hidden h-screen flex">
@@ -81,6 +89,10 @@ export class DesignReportGenerator {
       <button onclick="showTab('assets')" id="nav-assets" class="w-full text-left px-5 py-3 rounded-xl text-sm font-semibold transition-all hover:bg-slate-800 group flex items-center gap-3">
         <svg class="w-5 h-5 text-slate-400 group-hover:text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
         Visual Assets
+      </button>
+      <button onclick="showTab('motion')" id="nav-motion" class="w-full text-left px-5 py-3 rounded-xl text-sm font-semibold transition-all hover:bg-slate-800 group flex items-center gap-3">
+        <svg class="w-5 h-5 text-slate-400 group-hover:text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+        Motion & Animation
       </button>
       <button onclick="showTab('patterns')" id="nav-patterns" class="w-full text-left px-5 py-3 rounded-xl text-sm font-semibold transition-all hover:bg-slate-800 group flex items-center gap-3">
         <svg class="w-5 h-5 text-slate-400 group-hover:text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
@@ -121,19 +133,19 @@ export class DesignReportGenerator {
         </div>
         
         <div class="mt-12 grid grid-cols-4 gap-6">
-            <div class="bg-indigo-500/10 border border-indigo-500/20 rounded-2xl p-6">
+            <div class="bg-indigo-500/10 border border-indigo-500/20 rounded-2xl p-6 text-center">
                 <div class="text-3xl font-black text-indigo-400">${tokens?.colors.all.length || 0}</div>
                 <div class="text-[10px] uppercase font-bold text-slate-500 tracking-wider mt-1">Design Tokens</div>
             </div>
-            <div class="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-6">
+            <div class="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-6 text-center">
                 <div class="text-3xl font-black text-emerald-400">${assets?.all.length || 0}</div>
                 <div class="text-[10px] uppercase font-bold text-slate-500 tracking-wider mt-1">Found Assets</div>
             </div>
-            <div class="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-6">
-                <div class="text-3xl font-black text-amber-400">${patterns?.length || 0}</div>
-                <div class="text-[10px] uppercase font-bold text-slate-500 tracking-wider mt-1">Detected Components</div>
+            <div class="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-6 text-center">
+                <div class="text-3xl font-black text-amber-400">${motion?.animationTypes.length || 0}</div>
+                <div class="text-[10px] uppercase font-bold text-slate-500 tracking-wider mt-1">Motion Rules</div>
             </div>
-            <div class="bg-pink-500/10 border border-pink-500/20 rounded-2xl p-6">
+            <div class="bg-pink-500/10 border border-pink-500/20 rounded-2xl p-6 text-center">
                 <div class="text-3xl font-black text-pink-400">${accessibility?.score || 0} %</div>
                 <div class="text-[10px] uppercase font-bold text-slate-500 tracking-wider mt-1">A11y Health</div>
             </div>
@@ -179,16 +191,14 @@ export class DesignReportGenerator {
                 <div class="space-y-2">
                     <button onclick="scrollToToken('colors-section')" class="w-full text-left text-sm py-2 px-4 rounded-lg bg-slate-800 text-primary font-bold">Colors</button>
                     <button onclick="scrollToToken('typo-section')" class="w-full text-left text-sm py-2 px-4 rounded-lg hover:bg-slate-800/50 text-slate-400">Typography</button>
-                    <button onclick="scrollToToken('spacing-section')" class="w-full text-left text-sm py-2 px-4 rounded-lg hover:bg-slate-800/50 text-slate-400">Spacing</button>
-                    <button onclick="scrollToToken('shadows-section')" class="w-full text-left text-sm py-2 px-4 rounded-lg hover:bg-slate-800/50 text-slate-400">Shadows & Elevation</button>
                 </div>
             </div>
             
             <!-- Token Viewer -->
             <div class="flex-1 overflow-y-auto p-12 scroll-smooth">
-                <section id="colors-section" class="mb-20">
+                <section id="colors-section" class="mb-20 text-center">
                     <div class="flex items-center justify-between mb-8">
-                        <h2 class="text-3xl font-extrabold tracking-tight">Color Palette</h2>
+                        <h2 class="text-3xl font-extrabold tracking-tight text-center">Color Palette</h2>
                         <button onclick="copyAllTokens('css')" class="text-xs px-4 py-2 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 rounded-lg border border-indigo-500/20 font-bold transition-all">Copy as CSS Variables</button>
                     </div>
                     <div class="grid grid-cols-4 gap-6">
@@ -212,14 +222,6 @@ export class DesignReportGenerator {
             <div>
                 <h2 class="text-4xl font-extrabold tracking-tighter">Visual Assets</h2>
                 <p class="text-slate-500 text-sm mt-2">All branding elements, vectors, and background imagery identified on page.</p>
-            </div>
-            <div class="flex gap-4">
-                <select id="asset-type-filter" class="bg-slate-800 border-slate-700 text-sm rounded-xl px-4 py-2 border">
-                    <option value="all">All Types</option>
-                    <option value="svg">SVG Vectors</option>
-                    <option value="image">Bitmap Images</option>
-                    <option value="graph">Graphs & Canvas</option>
-                </select>
             </div>
         </header>
 
@@ -283,6 +285,63 @@ export class DesignReportGenerator {
                     </div>
                 </div>
             `).join('')}
+        </div>
+    </div>
+
+    <!-- Tab: Motion -->
+    <div id="tab-motion" class="tab-content h-full p-12 overflow-y-auto">
+        <h2 class="text-4xl font-extrabold tracking-tighter mb-12 max-w-6xl mx-auto">Motion Intelligence</h2>
+        
+        <div class="max-w-6xl mx-auto grid grid-cols-2 gap-12">
+            <section>
+                <h3 class="text-sm font-bold text-slate-400 uppercase tracking-widest mb-8">Detected Engines</h3>
+                <div class="flex gap-4">
+                    ${motion?.libraries.map(l => `
+                        <div class="bg-primary/10 border border-primary/20 p-6 rounded-2xl flex-1 flex items-center justify-center gap-3">
+                             <svg class="w-6 h-6 text-primary" fill="currentColor" viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                             <span class="font-extrabold text-primary text-xl">${l}</span>
+                        </div>
+                    `).join('') || '<div class="text-slate-500 font-mono text-sm">Standard Native CSS / Web Animations</div>'}
+                </div>
+            </section>
+
+            <section>
+                <h3 class="text-sm font-bold text-slate-400 uppercase tracking-widest mb-8">Animation Rules</h3>
+                <div class="grid grid-cols-2 gap-4">
+                    ${motion?.animationTypes.map(a => `
+                        <div class="bg-slate-900 border border-slate-800 p-4 rounded-xl text-xs font-bold text-slate-300">
+                            ${a}
+                        </div>
+                    `).join('')}
+                </div>
+            </section>
+        </div>
+
+        <div class="mt-16 max-w-6xl mx-auto">
+            <h3 class="text-sm font-bold text-slate-400 uppercase tracking-widest mb-8">Extracted @keyframes & Transitions</h3>
+            <div class="space-y-6">
+                 <!-- Since we extract this per-element during inspection, we would list common ones here -->
+                 <div class="bg-slate-900 border border-slate-800 rounded-3xl p-8 group">
+                    <p class="text-slate-500 text-sm mb-6 italic">Deep motion inspection is available in "Developer Mode" when hover-inspecting specific elements.</p>
+                    <div class="grid grid-cols-2 gap-12">
+                        <div>
+                            <h4 class="text-xs font-bold text-primary uppercase mb-4">Sample Transition</h4>
+                            <div class="p-6 bg-slate-950 rounded-2xl font-mono text-xs text-indigo-300 border border-slate-800 group-hover:border-primary/30 transition-all">
+                                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) 0s;
+                            </div>
+                        </div>
+                        <div>
+                            <h4 class="text-xs font-bold text-primary uppercase mb-4">Sample Keyframes</h4>
+                            <div class="p-6 bg-slate-950 rounded-2xl font-mono text-[10px] text-indigo-300 border border-slate-800 group-hover:border-primary/30 transition-all max-h-40 overflow-y-auto">
+                                @keyframes fade-in-up {<br>
+                                &nbsp;&nbsp;from { opacity: 0; transform: translateY(10px); }<br>
+                                &nbsp;&nbsp;to { opacity: 1; transform: translateY(0); }<br>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                 </div>
+            </div>
         </div>
     </div>
 
@@ -402,10 +461,10 @@ export class DesignReportGenerator {
 </body>
 </html>
     `;
-  }
+    }
 
-  private renderColorBar(color: any): string {
-    return `
+    private renderColorBar(color: any): string {
+        return `
     <div class="flex items-center gap-4 bg-slate-900/50 border border-slate-800 p-4 rounded-2xl">
         <div class="w-12 h-12 rounded-xl shadow-lg ring-1 ring-white/10" style="background: ${color.value}"></div>
         <div>
@@ -414,10 +473,10 @@ export class DesignReportGenerator {
         </div>
     </div>
     `;
-  }
+    }
 
-  private renderFullColorCard(color: any): string {
-    return `
+    private renderFullColorCard(color: any): string {
+        return `
     <div class="group bg-slate-900 border border-slate-800 p-4 rounded-2xl hover:border-primary transition-all">
         <div class="w-full h-24 rounded-xl mb-4 relative overflow-hidden" style="background: ${color.value}">
             <button onclick="copyToClipboard('${color.value}')" class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center text-[10px] font-bold text-white uppercase tracking-widest transition-opacity cursor-pointer">Copy Hex</button>
@@ -428,10 +487,10 @@ export class DesignReportGenerator {
         </div>
     </div>
     `;
-  }
+    }
 
-  private renderFullTypoRow(typo: any): string {
-    return `
+    private renderFullTypoRow(typo: any): string {
+        return `
     <div class="bg-slate-900 border border-slate-800 p-8 rounded-2xl group hover:border-slate-600 transition-all">
         <div class="flex items-center justify-between mb-8">
             <div class="flex gap-4">
@@ -446,10 +505,10 @@ export class DesignReportGenerator {
         </div>
     </div>
     `;
-  }
+    }
 
-  private renderPatternCard(p: ComponentPattern): string {
-    return `
+    private renderPatternCard(p: ComponentPattern): string {
+        return `
     <div class="bg-slate-900 border border-slate-800 p-8 rounded-3xl group hover:border-primary transition-all">
         <div class="flex items-center justify-between mb-6">
             <div class="text-[10px] font-black uppercase text-primary tracking-[0.2em]">${p.type} detected</div>
@@ -465,5 +524,5 @@ export class DesignReportGenerator {
         </div>
     </div>
     `;
-  }
+    }
 }

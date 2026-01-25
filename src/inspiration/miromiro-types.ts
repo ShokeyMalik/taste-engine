@@ -242,13 +242,20 @@ export interface AnimationStyles {
     timingFunction: string;
     delay: string;
     iterationCount: string;
+    keyframes?: string; // High-fidelity: The @keyframes CSS code
   }[];
   transitions: {
     property: string;
     duration: string;
     timingFunction: string;
     delay: string;
+    css?: string; // High-fidelity: The full transition CSS line
   }[];
+}
+
+export interface KeyframeToken {
+  name: string;
+  css: string;
 }
 
 export interface ResponsiveStyles {

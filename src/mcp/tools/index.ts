@@ -15,6 +15,8 @@ import { EXTRACT_ASSETS_TOOL } from './extract-assets';
 import { INSPECT_ELEMENT_TOOL } from './inspect-element';
 import { CHECK_ACCESSIBILITY_TOOL } from './check-accessibility';
 import { GENERATE_BEAUTIFUL_DESIGN_REPORT_TOOL } from './generate-beautiful-design-report';
+import { analyzeCodebaseVibe } from './analyze-codebase-vibe';
+import { applyDesignToCode } from './apply-design-to-code';
 
 // Generate Block
 export {
@@ -118,4 +120,6 @@ export const NEW_TOOLS = [
   INSPECT_ELEMENT_TOOL,
   CHECK_ACCESSIBILITY_TOOL,
   GENERATE_BEAUTIFUL_DESIGN_REPORT_TOOL,
+  analyzeCodebaseVibe,
+  applyDesignToCode,
 ];

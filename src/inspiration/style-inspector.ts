@@ -124,55 +124,84 @@ export class StyleInspector {
     }
 
     /**
-     * Extract animation and transition metadata
+     * Extract animation and transition metadata (including high-fidelity code)
      */
     private async extractAnimationStyles(browser: BrowserAutomation, selector: string): Promise<AnimationStyles> {
         const rawStyles = await browser.getComputedStyles(selector);
         if (!rawStyles) return { hasAnimation: false, animations: [], transitions: [] };
 
-        const animations: any[] = [];
-        const transitions: any[] = [];
+        // Execute in browser context for stylesheet access
+        const motionDetails = await browser.evaluateWithArgs((sel: string) => {
+            const el = document.querySelector(sel);
+            if (!el) return null;
 
-        // Parse animation properties
-        if (rawStyles['animation-name'] && rawStyles['animation-name'] !== 'none') {
-            const names = rawStyles['animation-name'].split(',');
-            const durations = rawStyles['animation-duration'].split(',');
-            const timings = rawStyles['animation-timing-function'].split(',');
-            const delays = rawStyles['animation-delay'].split(',');
-            const iterations = rawStyles['animation-iteration-count'].split(',');
+            const styles = window.getComputedStyle(el);
+            const animations: any[] = [];
+            const transitions: any[] = [];
 
-            names.forEach((name, i) => {
-                animations.push({
-                    name: name.trim(),
-                    duration: durations[i]?.trim() || '0s',
-                    timingFunction: timings[i]?.trim() || 'ease',
-                    delay: delays[i]?.trim() || '0s',
-                    iterationCount: iterations[i]?.trim() || '1',
+            // 1. Capture Animation Code (@keyframes)
+            if (styles.animationName && styles.animationName !== 'none') {
+                const names = styles.animationName.split(',').map(n => n.trim());
+                const durations = styles.animationDuration.split(',').map(n => n.trim());
+                const timings = styles.animationTimingFunction.split(',').map(n => n.trim());
+                const delays = styles.animationDelay.split(',').map(n => n.trim());
+                const iterations = styles.animationIterationCount.split(',').map(n => n.trim());
+
+                names.forEach((name, i) => {
+                    let keyframesCode = '';
+                    // Find the @keyframes rule in stylesheets
+                    try {
+                        for (const sheet of Array.from(document.styleSheets)) {
+                            try {
+                                for (const rule of Array.from(sheet.cssRules)) {
+                                    if (rule.constructor.name === 'CSSKeyframesRule' && (rule as any).name === name) {
+                                        keyframesCode = (rule as any).cssText;
+                                        break;
+                                    }
+                                }
+                            } catch (e) { /* cross-origin sheet */ }
+                            if (keyframesCode) break;
+                        }
+                    } catch (e) { }
+
+                    animations.push({
+                        name,
+                        duration: durations[i] || '0s',
+                        timingFunction: timings[i] || 'ease',
+                        delay: delays[i] || '0s',
+                        iterationCount: iterations[i] || '1',
+                        keyframes: keyframesCode
+                    });
                 });
-            });
-        }
+            }
 
-        // Parse transition properties
-        if (rawStyles['transition-property'] && rawStyles['transition-property'] !== 'none') {
-            const properties = rawStyles['transition-property'].split(',');
-            const durations = rawStyles['transition-duration'].split(',');
-            const timings = rawStyles['transition-timing-function'].split(',');
-            const delays = rawStyles['transition-delay'].split(',');
+            // 2. Capture Transition Code
+            if (styles.transitionProperty && styles.transitionProperty !== 'none') {
+                const props = styles.transitionProperty.split(',').map(p => p.trim());
+                const durations = styles.transitionDuration.split(',').map(p => p.trim());
+                const timings = styles.transitionTimingFunction.split(',').map(p => p.trim());
+                const delays = styles.transitionDelay.split(',').map(p => p.trim());
 
-            properties.forEach((prop, i) => {
-                transitions.push({
-                    property: prop.trim(),
-                    duration: durations[i]?.trim() || '0s',
-                    timingFunction: timings[i]?.trim() || 'ease',
-                    delay: delays[i]?.trim() || '0s',
+                props.forEach((property, i) => {
+                    transitions.push({
+                        property,
+                        duration: durations[i] || '0s',
+                        timingFunction: timings[i] || 'ease',
+                        delay: delays[i] || '0s',
+                        css: `transition: ${property} ${durations[i]} ${timings[i]} ${delays[i]};`
+                    });
                 });
-            });
-        }
+            }
+
+            return { animations, transitions };
+        }, selector);
+
+        if (!motionDetails) return { hasAnimation: false, animations: [], transitions: [] };
 
         return {
-            hasAnimation: animations.length > 0 || transitions.length > 0,
-            animations,
-            transitions,
+            hasAnimation: motionDetails.animations.length > 0 || motionDetails.transitions.length > 0,
+            animations: motionDetails.animations,
+            transitions: motionDetails.transitions,
         };
     }
 
