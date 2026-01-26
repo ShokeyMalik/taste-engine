@@ -192,6 +192,7 @@ export {
   mergeSelectiveInspirations,
   URLAnalyzer,
   SelectiveInspirationMerger,
+  CreativeMixer,
 } from './inspiration';
 
 // Knowledge Base (Persistent Learning)

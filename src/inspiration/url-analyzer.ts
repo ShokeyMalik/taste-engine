@@ -50,8 +50,20 @@ export interface URLAnalysisResult {
     libraries: string[];
     animationTypes: string[];
   };
+  extractedArchetypes: {
+    header?: string; // 'sticky', 'floating', 'minimal'
+    hero?: string;   // 'split', 'centered', 'bento'
+    features?: string; // 'grid', 'vertical-stack', 'bento'
+    interactive?: string[]; // 'hover-effects', 'magnetic-buttons'
+  };
+  harvestedSVGs: Array<{
+    svg: string;
+    category: 'logo' | 'icon' | 'pattern' | 'illustration';
+    context?: string; // class, id or parent info
+  }>;
   cssVariables: Record<string, string>;
   rawCSS?: string;
+  motionCSS?: string;
 }
 
 export interface SelectiveInspiration {
@@ -92,6 +104,8 @@ export class URLAnalyzer {
       extractedSVGs: [],
       extractedLottieAnimations: [],
       extractedMotion: { libraries: [], animationTypes: [] },
+      extractedArchetypes: {},
+      harvestedSVGs: [],
       cssVariables: {},
       rawCSS: '',
     };
@@ -104,13 +118,21 @@ export class URLAnalyzer {
       }
 
       const htmlResult = await withBrowser(url, async (browser) => {
+        const html = await browser.getHTML();
+        const archetypes = await this.identifyLayoutArchetypes(browser);
+        const svgs = await this.harvestSVGs(browser, url);
+        const motionCSS = await this.extractLiteralMotion(browser);
         return {
-          html: await browser.getHTML(),
-          css: '' // Basic analyze will extract from HTML tags
+          html,
+          archetypes,
+          svgs,
+          motionCSS
         }
-      });
+      }, { waitUntil: 'networkidle', timeout: 90000 });
       let htmlContent = htmlResult.html;
-      let combinedCSS = '';
+      result.extractedArchetypes = htmlResult.archetypes;
+      result.harvestedSVGs = htmlResult.svgs;
+      result.motionCSS = htmlResult.motionCSS;
 
       // Basic check to see if it's likely a summarized version
       // A full HTML document should start with <!DOCTYPE html> or <html>
@@ -137,11 +159,11 @@ export class URLAnalyzer {
       // In a full implementation, we would fetch stylesheet links here too.
       // But BrowserAutomation evaluation can already get all rules from styleSheets.
 
-      combinedCSS = allCSS.join('\n');
+      const combinedCSS = (htmlResult.motionCSS || '') + '\n' + allCSS.join('\n');
 
       const rawContentResult = await analyzeRawContent(htmlContent, combinedCSS, url);
 
-      return { ...rawContentResult, url, success: true };
+      return { ...rawContentResult, url, success: true, motionCSS: htmlResult.motionCSS };
 
 
     } catch (error) {
@@ -239,6 +261,109 @@ export class URLAnalyzer {
       }
     }
     return [...imageUrls];
+  }
+
+  public harvestSVGs(browser: any, url: string): Promise<URLAnalysisResult['harvestedSVGs']> {
+    return browser.evaluateWithArgs((pageUrl: string) => {
+      const results: any[] = [];
+      const svgs = Array.from(document.querySelectorAll('svg, [class*="icon"], [class*="logo"] svg'));
+
+      svgs.forEach(el => {
+        const svg = el.tagName.toLowerCase() === 'svg' ? (el as SVGElement) : el.querySelector('svg');
+        if (!svg) return;
+
+        const bbox = svg.getBoundingClientRect();
+        const raw = svg.outerHTML;
+        const classes = (svg.className?.toString() || '') + (svg.parentElement?.className?.toString() || '');
+        const id = svg.id || '';
+
+        let category: 'logo' | 'icon' | 'pattern' | 'illustration' = 'icon';
+
+        // High priority branding detection
+        const pUrl = pageUrl || '';
+        if (classes.includes('logo') || id.includes('logo') || pUrl.includes('logo') || svg.closest('header')) {
+          if (bbox.width > 20 && bbox.width < 300) category = 'logo';
+        }
+
+        if (bbox.width > 500) category = 'pattern';
+        if (bbox.width > 200 && bbox.width <= 500) category = 'illustration';
+        if (classes.includes('pattern') || classes.includes('bg-')) category = 'pattern';
+
+        results.push({
+          svg: raw,
+          category,
+          context: `id:${id}, class:${classes}`
+        });
+      });
+
+      // Filter and dedupe
+      const seen = new Set();
+      return results.filter(r => {
+        if (seen.has(r.svg)) return false;
+        seen.add(r.svg);
+        return r.svg.length > 50; // Ignore tiny fragments
+      }).slice(0, 30);
+    });
+  }
+
+  public identifyLayoutArchetypes(browser: any): Promise<URLAnalysisResult['extractedArchetypes']> {
+    return browser.evaluate(() => {
+      const archetypes: any = {};
+
+      // 1. Detect Hero Strategy
+      const potentialHeros = Array.from(document.querySelectorAll('section, header + section, main > div > section'));
+      const hero = potentialHeros.find(s => s.getBoundingClientRect().height > 400) || potentialHeros[0];
+
+      if (hero) {
+        const textContent = hero.textContent?.length || 0;
+        const grids = hero.querySelectorAll('[class*="grid"], [class*="flex"] > div').length;
+        const h1 = hero.querySelector('h1');
+
+        if (grids >= 4 || hero.innerHTML.includes('bento')) {
+          archetypes.hero = 'bento';
+        } else if (h1 && (hero.querySelector('img') || hero.querySelector('video') || hero.querySelector('canvas'))) {
+          archetypes.hero = 'split';
+        } else {
+          archetypes.hero = 'centered';
+        }
+      }
+
+      // 2. Detect Navigation
+      const nav = document.querySelector('nav, [class*="nav"], header');
+      if (nav) {
+        const rect = nav.getBoundingClientRect();
+        const style = window.getComputedStyle(nav);
+        if (style.position === 'fixed' || style.position === 'sticky') {
+          archetypes.header = 'sticky';
+        } else if (rect.width < document.body.clientWidth * 0.9) {
+          archetypes.header = 'floating';
+        } else {
+          archetypes.header = 'minimal';
+        }
+      }
+
+      return archetypes;
+    });
+  }
+
+  public extractLiteralMotion(browser: any): Promise<string> {
+    return browser.evaluate(() => {
+      let motionRules = '';
+      const sheets = Array.from(document.styleSheets);
+
+      sheets.forEach(sheet => {
+        try {
+          const rules = Array.from(sheet.cssRules);
+          rules.forEach(rule => {
+            if (rule.cssText.includes('@keyframes') || rule.cssText.includes('transition') || rule.cssText.includes('animation')) {
+              motionRules += rule.cssText + '\n';
+            }
+          });
+        } catch (e) { }
+      });
+
+      return motionRules.substring(0, 5000); // Cap for safety
+    });
   }
 
   public extractSVGs(html: string): string[] {
@@ -780,6 +905,8 @@ export async function analyzeRawContent(htmlContent: string, cssContent: string,
     extractedSVGs: [],
     extractedLottieAnimations: [],
     extractedMotion: { libraries: [], animationTypes: [] },
+    extractedArchetypes: {},
+    harvestedSVGs: [],
     cssVariables: {},
     rawCSS: cssContent,
   };

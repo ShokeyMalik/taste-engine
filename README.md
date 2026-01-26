@@ -6,14 +6,22 @@
 
 **The Solution**: Taste Engine is a design intelligence layer that understands *context* (is this a dashboard or a marketing page?), *taste* (what should this feel like?), and applies *recipes* (how should components behave?) to produce distinctive, polished UIs.
 
-## What's New in v0.5.0
+## What's New in v1.0.0 (The Ultimate Vibe Mixer) 🌪️
 
-### Visual Assets Module (NEW!)
-Context-aware visual asset generation - placeholders, animations, SVG optimization:
-- **Placeholder Images**: Photography, gradients, patterns with industry context
-- **Animation Code**: Framer Motion, GSAP, CSS, Tailwind - copy-paste ready
-- **SVG Optimizer**: Pure TypeScript, no dependencies, accessibility checks
-- **Pattern Generator**: 14 SVG patterns for backgrounds
+### Structural DNA Synthesis (NEW!)
+Move beyond simple color/font matching. Taste Engine now extracts the **architecture** of multiple websites:
+- **Multi-URL Blending**: Mix up to 5 URLs in one go (e.g., Stripe + Linear + Vercel).
+- **Layout Archetypes**: Automatically detects and replicates complex structural patterns (Bento grids, Split-heroes, Sticky vs Floating navs).
+- **Creative Mixer**: An intelligent synthesis engine that picking the best features from each source to build a truly unique, zero-template UI.
+
+### Real Asset Semantic Harvester (NEW!)
+- **SVG Harvesting**: Deeply extracts and categorizes SVGs (Logos, Icons, Patterns) directly from the live DOM of any URL.
+- **Visual Motif Extraction**: Identifies mesh gradients, noise textures, and specific elevation patterns (shadows/radii).
+
+### High-Fidelity Generative UI
+- **Zero-Template Project Generation**: Produces complete React projects with bespoke components that never existed before.
+- **Universal Mixer Tooling**: Native MCP support for multi-source inspiration arrays.
+- **Industrial Grade Code**: Generated components are accessible, typed, and context-aware.
 
 ### UX Context Scanner (v0.4.0)
 Automatically scan your codebase to understand WHO uses your product and WHAT they need:
@@ -344,36 +352,27 @@ Add to your Claude Desktop config (`~/Library/Application Support/Claude/claude_
 | `generate_patch` | Creates file modification instructions from a plan |
 | `verify_ui` | Runs visual regression and component guardrails |
 
-### Context-Aware Design Workflow
+### The "Universal Mixer" Workflow
 
 ```typescript
-// 1. Scan codebase for UX context
-const context = await callTool('scan_ux_context', { repoPath: '/path/to/project' });
-// Returns: { domain: 'hospitality', audiences: [...], workflows: [...] }
-
-// 2. Get design guidelines based on context
-const guidelines = getDesignGuidelines(context.manifest);
-// Returns: { colorTemperature: 'warm', recommendedInspiration: ['airbnb', 'linear'] }
-
-// 3. Generate taste from recommended inspirations
-const taste = await callTool('derive_taste_from_inspirations', {
-  inspirations: guidelines.recommendedInspiration.map(name => ({
-    type: 'reference-name',
-    value: name,
-    weight: 1.0
-  }))
+// 1. Blend multiple elite URLs into a single DNA profile
+const synthesis = await callTool('apply_inspiration', {
+  sources: [
+    'https://stripe.com', 
+    'https://linear.app', 
+    'https://vercel.com'
+  ]
 });
+// → Returns a unique profile with Stripe grays, Linear motion, and Vercel type.
 
-// 4. Generate page plan informed by context
-const plan = await callTool('propose_page_plan', {
-  repoMetadata: repo,
-  tasteProfile: taste,
-  uxContext: context, // NEW! Pass UX context for smarter decisions
-  targetRoute: { path: '/dashboard', intent: 'product' }
+// 2. Generate a complete, unique marketing project
+const project = await callTool('generate_marketing_site', {
+  product_path: '/path/to/project',
+  inspiration: ['stripe.com', 'linear.app', 'vercel.com'],
+  product_name: 'Vibe Engine v1',
+  target_audience: 'Modern Developers'
 });
-
-// 5. Generate patches
-const patches = await callTool('generate_patch', { plan, repoMetadata: repo });
+// → Generates App.tsx + 10 bespoke blocks + harvested SVGs.
 ```
 
 ## API Reference

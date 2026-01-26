@@ -2,10 +2,10 @@
  * Taste Engine MCP Server
  *
  * Model Context Protocol server for AI coding platforms.
- * Provides design intelligence tools that understand your codebase
- * and generate contextually appropriate UI code.
+ * Provides design intelligence tools that understand your codebase, 
+ * harvest real assets from inspirations, and synthesize unique structural DNA.
  *
- * @version 0.2.0
+ * @version 1.0.0
  */
 
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
@@ -501,19 +501,19 @@ class TasteEngineServer {
 
           // New v1.0 tools
           case 'generate_block':
-            return await this.handleGenerateBlockTool(args as GenerateBlockInput);
+            return await this.handleGenerateBlockTool(args as any as GenerateBlockInput);
 
           case 'compose_page':
-            return await this.handleComposePageTool(args as ComposePageInput);
+            return await this.handleComposePageTool(args as any as ComposePageInput);
 
           case 'apply_inspiration':
-            return await this.handleApplyInspirationTool(args as ApplyInspirationInput);
+            return await this.handleApplyInspirationTool(args as any as ApplyInspirationInput);
 
           case 'suggest_blocks':
-            return await this.handleSuggestBlocksTool(args as SuggestBlocksInput);
+            return await this.handleSuggestBlocksTool(args as any as SuggestBlocksInput);
 
           case 'generate_marketing_site':
-            return await this.handleGenerateMarketingSiteTool(args as GenerateMarketingSiteInput);
+            return await this.handleGenerateMarketingSiteTool(args as any as GenerateMarketingSiteInput);
 
           default:
             throw new McpError(ErrorCode.MethodNotFound, `Unknown tool: ${name}`);
@@ -620,13 +620,13 @@ class TasteEngineServer {
           borderRadius: {},
           typography: {},
           shadows: {},
-        },
+        } as any,
         patterns: {
           buttonVariants: [],
           cardVariants: [],
           surfaceVariants: [],
           layoutPatterns: [],
-        },
+        } as any,
         stats: {
           totalFiles: 0,
           totalComponents: 0,
@@ -688,7 +688,7 @@ class TasteEngineServer {
     }
 
     // Generate code
-    const result: GeneratedCode = generateCode(analysis, resolvedTaste, component_type, name);
+    const result: GeneratedCode = generateCode(analysis!, resolvedTaste, component_type, name);
 
     const inspirationNote = inspiration
       ? `\n**Style:** ${inspiration}`
@@ -768,9 +768,9 @@ ${JSON.stringify(taste, null, 2)}
 - **Narrative (${taste.narrative})**: ${taste.narrative > 0.5 ? 'Storytelling' : 'Functional'}
 
 Use this with \`generate_component\` to create ${reference}-inspired components.`,
-          },
-        ],
-      };
+        },
+      ],
+    };
   }
 
   private handleExplainTaste(args: { parameter: string }) {

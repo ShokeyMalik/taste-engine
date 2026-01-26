@@ -226,11 +226,11 @@ export class BlockGenerator {
     switch (blockType) {
       // Landing blocks
       case 'hero':
-        return this.extractTemplateOutput(generateHeroTemplate(templateInput));
+        return this.extractTemplateOutput(generateHeroTemplate(templateInput, input.inspirationProfile));
       case 'features':
-        return this.extractTemplateOutput(generateFeaturesTemplate(templateInput));
+        return this.extractTemplateOutput(generateFeaturesTemplate(templateInput)); // Features doesn't support profile yet, but could soon
       case 'navigation':
-        return this.extractTemplateOutput(generateNavigationTemplate(templateInput));
+        return this.extractTemplateOutput(generateNavigationTemplate(templateInput, input.inspirationProfile));
       case 'logo-cloud':
         return this.extractTemplateOutput(generateLogoCloudTemplate(templateInput));
       case 'pricing':

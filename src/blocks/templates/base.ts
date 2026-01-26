@@ -416,3 +416,34 @@ export function getFlexClasses(
   ];
   return classes.filter(Boolean).join(' ');
 }
+// =============================================================================
+// ASSET & ARCHETYPE HELPERS
+// =============================================================================
+
+/**
+ * Get a harvested logo from the profile
+ */
+export function getHarvestedLogo(profile?: InspirationProfile): string | undefined {
+  return profile?.assets?.logos?.[0];
+}
+
+/**
+ * Get a harvested pattern SVG from the profile
+ */
+export function getHarvestedPattern(profile?: InspirationProfile): string | undefined {
+  return profile?.assets?.patterns?.[0];
+}
+
+/**
+ * Get a structural archetype for a specific slot
+ */
+export function getArchetype(profile: InspirationProfile | undefined, slot: 'header' | 'hero' | 'features'): string | undefined {
+  return profile?.archetypes?.[slot];
+}
+
+/**
+ * Inject a custom SVG into a component wrapper
+ */
+export function injectSVG(svg: string, className?: string): string {
+  return svg.replace('<svg', `<svg className="${className || ''}"`);
+}

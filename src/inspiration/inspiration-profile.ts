@@ -51,6 +51,21 @@ export interface InspirationProfile {
   // Component style preferences
   componentStyles: ComponentStyleConfig;
 
+  // Structural archetypes
+  archetypes: {
+    header?: string;
+    hero?: string;
+    features?: string;
+    interactive?: string[];
+  };
+
+  // Harvested assets
+  assets: {
+    logos: string[];
+    patterns: string[];
+    icons: string[];
+  };
+
   // Block-specific preferences
   blockPreferences: BlockPreferenceConfig;
 
@@ -65,6 +80,9 @@ export interface InspirationProfile {
 
   // Custom Tailwind theme extensions
   tailwindExtensions: Record<string, unknown>;
+
+  // Literal CSS motions harvested
+  motionCSS?: string;
 }
 
 export interface InspirationSourceSummary {
@@ -267,7 +285,24 @@ export class InspirationProfileBuilder {
       confidence: 0,
       cssVariables: {},
       tailwindExtensions: {},
+      motionCSS: '',
     };
+  }
+
+  /**
+   * Set profile name
+   */
+  name(name: string): this {
+    this.profile.name = name;
+    return this;
+  }
+
+  /**
+   * Set literal motion CSS
+   */
+  motionCSS(css: string): this {
+    this.profile.motionCSS = css;
+    return this;
   }
 
   /**
@@ -307,6 +342,22 @@ export class InspirationProfileBuilder {
    */
   componentStyles(config: ComponentStyleConfig): this {
     this.profile.componentStyles = config;
+    return this;
+  }
+
+  /**
+   * Set structural archetypes
+   */
+  archetypes(config: InspirationProfile['archetypes']): this {
+    this.profile.archetypes = config;
+    return this;
+  }
+
+  /**
+   * Set harvested assets
+   */
+  assets(assets: InspirationProfile['assets']): this {
+    this.profile.assets = assets;
     return this;
   }
 
@@ -391,10 +442,64 @@ export class InspirationProfileBuilder {
     if (!this.profile.tuners) {
       this.profile.tuners = getDefaultTuners();
     }
+    if (!this.profile.archetypes) {
+      this.profile.archetypes = {};
+    }
+    if (!this.profile.assets) {
+      this.profile.assets = { logos: [], patterns: [], icons: [] };
+    }
 
     this.profile.updatedAt = new Date().toISOString();
 
     return this.profile as InspirationProfile;
+  }
+
+  /**
+   * Create a builder from a URLAnalysisResult
+   */
+  static fromAnalysis(analysis: any): InspirationProfileBuilder {
+    const builder = new InspirationProfileBuilder(`From ${analysis.url}`);
+
+    // Colors
+    builder.colors({
+      primary: analysis.extractedColors.accents[0] || '#3B82F6',
+      primaryForeground: '#FFFFFF',
+      secondary: analysis.extractedColors.accents[1] || '#6B7280',
+      secondaryForeground: '#FFFFFF',
+      accent: analysis.extractedColors.accents[2] || '#8B5CF6',
+      accentForeground: '#FFFFFF',
+      background: { light: '#FFFFFF', dark: '#0C0E14' },
+      foreground: { light: '#0A0A0B', dark: '#FFFFFF' },
+      surface: { light: '#F5F5F5', dark: '#161A24' },
+      muted: { light: '#8B8B8B', dark: '#525252' },
+      mutedForeground: { light: '#525252', dark: '#8B8B8B' },
+      border: { light: '#E5E5E5', dark: '#1E293B' },
+      gradients: []
+    });
+
+    // Typography
+    builder.typography({
+      headingFont: analysis.extractedTypography.fontFamilies.slice(0, 1),
+      bodyFont: analysis.extractedTypography.fontFamilies.slice(0, 1),
+      monoFont: ['JetBrains Mono', 'monospace'],
+      scale: 'normal',
+      headingWeight: 'bold',
+      bodyWeight: 'normal',
+      lineHeight: 'relaxed',
+      letterSpacing: 'tight',
+    });
+
+    // Archetypes & Assets
+    builder.archetypes(analysis.extractedArchetypes || {});
+    builder.assets({
+      logos: analysis.harvestedSVGs?.filter((s: any) => s.category === 'logo').map((s: any) => s.svg) || [],
+      patterns: analysis.harvestedSVGs?.filter((s: any) => s.category === 'pattern').map((s: any) => s.svg) || [],
+      icons: analysis.harvestedSVGs?.filter((s: any) => s.category === 'icon').map((s: any) => s.svg) || [],
+    });
+
+    builder.motionCSS(analysis.motionCSS || '');
+
+    return builder;
   }
 
   /**

@@ -16,10 +16,11 @@ import {
   getDefaultBlockPreferences,
   getDefaultTuners,
 } from '../../inspiration/inspiration-profile';
-import { KNOWN_BRANDS, InspirationScanner } from '../../inspiration';
+import { KNOWN_BRANDS, InspirationScanner, URLAnalyzer } from '../../inspiration';
 import { analyzeURL, type URLAnalysisResult } from '../../inspiration';
 import { DEFAULT_TUNERS } from '../../blocks/types';
 import { DesignSynthesizer } from '../../inspiration/design-synthesis';
+import { CreativeMixer } from '../../inspiration/creative-mixer';
 
 // =============================================================================
 // TYPES
@@ -295,15 +296,17 @@ export async function handleApplyInspiration(
     if (isUrl) {
       // Analyze URL
       try {
-        const extractions = await scanner.scan([{ type: 'url', value: source }]);
-        if (extractions.length > 0) {
-          const profile = InspirationProfileBuilder.fromExtracted(extractions[0]).build();
+        const analyzer = new URLAnalyzer();
+        const analysis = await analyzer.analyze(source);
+        if (analysis.success) {
+          const profile = InspirationProfileBuilder.fromAnalysis(analysis).build();
           sourceProfiles.push(profile);
           analyzedSources.push({
             source,
             type: 'url',
-            aspects_extracted: ['colors', 'typography', 'spacing', 'motion', 'components'],
-          });
+            aspects_extracted: ['colors', 'typography', 'spacing', 'motion', 'components', 'archetypes', 'svgs'],
+            rawAnalysis: analysis // Store for mixer
+          } as any);
           summaryParts.push(new URL(source).hostname);
         }
       } catch (err) {
@@ -335,14 +338,27 @@ export async function handleApplyInspiration(
     }
   }
 
-  if (sourceProfiles.length === 0) {
+  if (sourceProfiles.length === 0 && analyzedSources.length === 0) {
     throw new Error('No valid sources could be analyzed. Provide valid brand names or URLs.');
   }
 
   // 2. Synthesize all profiles into one "Ultimate Profile"
-  const synthesizedProfile = DesignSynthesizer.synthesize(sourceProfiles, {
-    strategy: 'balanced'
-  });
+  let synthesizedProfile: InspirationProfile;
+
+  const urlResults = analyzedSources
+    .filter(s => s.type === 'url')
+    .map(s => (s as any).rawAnalysis) // We need to store rawAnalysis in handledloop
+    .filter(Boolean);
+
+  if (urlResults.length > 0) {
+    // Use the structural mixer for URLs
+    synthesizedProfile = CreativeMixer.mix(urlResults);
+  } else {
+    // Fallback to basic synthesizer for brands
+    synthesizedProfile = DesignSynthesizer.synthesize(sourceProfiles, {
+      strategy: 'balanced'
+    });
+  }
 
   // 3. Post-process (Selective overrides)
   if (input.selective) {

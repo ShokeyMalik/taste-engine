@@ -1184,3 +1184,5 @@ export * from './knowledge-base';
 
 // Re-export MiroMiro extraction (design tokens + assets)
 export * from './miromiro';
+// Re-export structural mixer
+export * from './creative-mixer';
