@@ -939,64 +939,218 @@ export class URLAnalyzer {
       'radix-ui.com': {
         success: true,
         extractedColors: {
-          backgrounds: ['#FFFFFF', '#FAFAFA', '#F4F4F5'],
-          texts: ['#11181C', '#687076', '#889096'],
-          accents: ['#0091FF', '#0081F1', '#006ADC'],
-          borders: ['#E6E8EB', '#DFE3E6'],
+          backgrounds: ['#FFFFFF', '#FAFAFA', '#F4F4F5', '#111113', '#18181B', '#1C1C1F'],
+          texts: ['#11181C', '#687076', '#889096', '#FAFAFA', '#EDEDED', '#B4B4B4'],
+          accents: ['#0091FF', '#0081F1', '#006ADC', '#3E63DD', '#8B5CF6'],
+          borders: ['#E6E8EB', '#DFE3E6', '#313538', '#3A3A3C'],
         },
         extractedTypography: {
-          fontFamilies: ['Untitled Sans', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
-          fontSizes: ['13px', '15px', '17px', '19px', '21px'],
-          fontWeights: ['400', '500', '600'],
-          lineHeights: ['1.25', '1.5', '1.7'],
+          fontFamilies: ['Untitled Sans', 'Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+          fontSizes: ['12px', '13px', '15px', '17px', '19px', '21px', '28px', '35px'],
+          fontWeights: ['400', '500', '600', '700'],
+          lineHeights: ['1.2', '1.25', '1.4', '1.5', '1.7'],
         },
         extractedSpacing: {
-          paddings: ['4px', '8px', '12px', '16px', '24px'],
-          margins: ['8px', '16px', '24px'],
-          gaps: ['4px', '8px', '12px'],
+          paddings: ['4px', '8px', '12px', '16px', '20px', '24px', '32px'],
+          margins: ['8px', '12px', '16px', '24px', '32px'],
+          gaps: ['4px', '8px', '12px', '16px'],
         },
         extractedComponents: {
-          borderRadii: ['4px', '6px', '8px'],
-          shadows: ['0 1px 2px rgba(0,0,0,0.05)', '0 2px 4px rgba(0,0,0,0.08)'],
-          transitions: ['all 150ms ease'],
+          borderRadii: ['4px', '6px', '8px', '12px'],
+          shadows: [
+            '0 1px 2px rgba(0,0,0,0.05)',
+            '0 2px 4px rgba(0,0,0,0.08)',
+            '0 4px 8px rgba(0,0,0,0.1)',
+            'inset 0 0 0 1px rgba(0,0,0,0.1)',
+          ],
+          transitions: [
+            'all 150ms ease',
+            'background-color 100ms ease',
+            'transform 200ms cubic-bezier(0.16, 1, 0.3, 1)',
+            'opacity 200ms ease',
+          ],
         },
+        extractedArchetypes: {
+          header: 'sticky',
+          hero: 'centered',
+          features: 'grid',
+          interactive: ['focus-visible', 'hover-highlight', 'keyboard-nav'],
+        },
+        layoutDsl: {
+          sections: [
+            { id: 'nav-0', role: 'nav', layout: 'stack', hierarchy: { hasHeading: false, hasSubheading: false, hasCta: true, media: 'none' }, density: 'tight' },
+            { id: 'hero-1', role: 'hero', layout: 'stack', hierarchy: { hasHeading: true, hasSubheading: true, hasCta: true, media: 'none' }, density: 'spacious' },
+            { id: 'features-2', role: 'features', layout: 'grid', hierarchy: { hasHeading: true, hasSubheading: true, hasCta: false, media: 'illustration' }, density: 'normal', columns: 3 },
+            { id: 'content-3', role: 'content', layout: 'stack', hierarchy: { hasHeading: true, hasSubheading: false, hasCta: false, media: 'none' }, density: 'normal' },
+            { id: 'footer-4', role: 'footer', layout: 'grid', hierarchy: { hasHeading: false, hasSubheading: false, hasCta: false, media: 'none' }, density: 'normal', columns: 4 },
+          ],
+        },
+        harvestedSVGs: [
+          { svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>', category: 'icon', context: 'arrow-right-icon' },
+          { svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>', category: 'icon', context: 'chevron-down-icon' },
+          { svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>', category: 'icon', context: 'info-icon' },
+          { svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>', category: 'icon', context: 'close-icon' },
+          { svg: '<svg viewBox="0 0 25 25" fill="none"><path d="M12 25C7.58172 25 4 21.4183 4 17C4 12.5817 7.58172 9 12 9V25Z" fill="#0091FF"/><path d="M12 0C16.4183 0 20 3.58172 20 8C20 12.4183 16.4183 16 12 16V0Z" fill="#0091FF"/><path d="M12 9C14.2091 9 16 7.20914 16 5C16 2.79086 14.2091 1 12 1V9Z" fill="#0091FF" opacity="0.5"/></svg>', category: 'logo', context: 'radix-logo' },
+          { svg: '<svg viewBox="0 0 200 100" fill="none"><defs><linearGradient id="radix-grad" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" style="stop-color:#0091FF;stop-opacity:0.2"/><stop offset="100%" style="stop-color:#0091FF;stop-opacity:0"/></linearGradient></defs><rect width="200" height="100" fill="url(#radix-grad)"/></svg>', category: 'pattern', context: 'gradient-fade' },
+        ],
+        extractedImages: [],
+        motionCSS: `/* Motion: Accessible and purposeful */
+@keyframes slideUpAndFade {
+  from { opacity: 0; transform: translateY(2px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes slideRightAndFade {
+  from { opacity: 0; transform: translateX(-2px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes slideDownAndFade {
+  from { opacity: 0; transform: translateY(-2px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes contentShow {
+  from { opacity: 0; transform: translate(-50%, -48%) scale(0.96); }
+  to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+.animate-slideUpAndFade { animation: slideUpAndFade 200ms cubic-bezier(0.16, 1, 0.3, 1); }
+.animate-contentShow { animation: contentShow 150ms cubic-bezier(0.16, 1, 0.3, 1); }
+[data-state="open"] { animation: slideDownAndFade 200ms ease; }
+.hover\\:bg-gray-3:hover { background-color: var(--gray-3); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }`,
         cssVariables: {
           '--accent': '#0091FF',
+          '--accent-a3': 'rgba(0, 145, 255, 0.1)',
+          '--accent-a4': 'rgba(0, 145, 255, 0.15)',
           '--gray-1': '#FAFAFA',
+          '--gray-2': '#F4F4F5',
+          '--gray-3': '#E4E4E7',
+          '--gray-4': '#D4D4D8',
+          '--gray-5': '#A1A1AA',
+          '--gray-6': '#71717A',
+          '--gray-11': '#27272A',
           '--gray-12': '#11181C',
+          '--radius-1': '4px',
+          '--radius-2': '6px',
+          '--radius-3': '8px',
         },
+        rawCSS: `
+/* Radix Primitives styling patterns */
+.radix-focus-guard { position: fixed; top: 0; left: 0; width: 1px; height: 0; overflow: hidden; }
+.DialogOverlay { background: rgba(0, 0, 0, 0.5); position: fixed; inset: 0; animation: overlayShow 150ms ease; }
+.DialogContent { background: white; border-radius: var(--radius-3); box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15); }
+.DropdownMenuItem { padding: 8px 12px; border-radius: var(--radius-1); cursor: pointer; }
+.DropdownMenuItem:hover { background: var(--gray-3); }
+.DropdownMenuItem:focus { background: var(--accent-a3); outline: none; }
+.TooltipContent { background: var(--gray-12); color: white; padding: 6px 10px; border-radius: var(--radius-2); font-size: 13px; }
+`,
       },
 
       'ui.shadcn.com': {
         success: true,
         extractedColors: {
-          backgrounds: ['#FFFFFF', '#FAFAFA', '#F4F4F5', '#09090B'],
-          texts: ['#09090B', '#71717A', '#A1A1AA'],
-          accents: ['#18181B', '#27272A'],
-          borders: ['#E4E4E7', '#27272A'],
+          backgrounds: ['#FFFFFF', '#FAFAFA', '#F4F4F5', '#09090B', '#0A0A0A'],
+          texts: ['#09090B', '#71717A', '#A1A1AA', '#FAFAFA', '#E4E4E7'],
+          accents: ['#18181B', '#27272A', '#3B82F6', '#8B5CF6'],
+          borders: ['#E4E4E7', '#27272A', '#3F3F46'],
         },
         extractedTypography: {
-          fontFamilies: ['Inter', 'system-ui', 'sans-serif'],
-          fontSizes: ['14px', '16px', '18px', '24px', '30px'],
-          fontWeights: ['400', '500', '600', '700'],
-          lineHeights: ['1.5', '1.6', '1.75'],
+          fontFamilies: ['Inter', 'Geist', 'system-ui', 'sans-serif'],
+          fontSizes: ['13px', '14px', '16px', '18px', '24px', '30px', '36px', '48px'],
+          fontWeights: ['400', '500', '600', '700', '800'],
+          lineHeights: ['1.4', '1.5', '1.6', '1.75'],
         },
         extractedSpacing: {
-          paddings: ['8px', '12px', '16px', '24px'],
-          margins: ['8px', '16px', '24px', '32px'],
-          gaps: ['8px', '12px', '16px'],
+          paddings: ['8px', '12px', '16px', '20px', '24px', '32px'],
+          margins: ['8px', '16px', '24px', '32px', '48px'],
+          gaps: ['8px', '12px', '16px', '24px'],
         },
         extractedComponents: {
-          borderRadii: ['6px', '8px', '12px', 'var(--radius)'],
-          shadows: ['0 1px 2px 0 rgb(0 0 0 / 0.05)', '0 4px 6px -1px rgb(0 0 0 / 0.1)'],
-          transitions: ['all 200ms cubic-bezier(0.4, 0, 0.2, 1)'],
+          borderRadii: ['6px', '8px', '12px', '16px', 'var(--radius)'],
+          shadows: [
+            '0 1px 2px 0 rgb(0 0 0 / 0.05)',
+            '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+            '0 10px 15px -3px rgb(0 0 0 / 0.1)',
+            '0 0 0 1px rgba(0, 0, 0, 0.05)',
+          ],
+          transitions: [
+            'all 200ms cubic-bezier(0.4, 0, 0.2, 1)',
+            'colors 150ms ease',
+            'transform 200ms ease-out',
+          ],
         },
+        extractedArchetypes: {
+          header: 'sticky',
+          hero: 'centered',
+          features: 'grid',
+          interactive: ['hover-bg', 'focus-ring', 'active-scale'],
+        },
+        layoutDsl: {
+          sections: [
+            { id: 'nav-0', role: 'nav', layout: 'stack', hierarchy: { hasHeading: false, hasSubheading: false, hasCta: true, media: 'none' }, density: 'tight' },
+            { id: 'hero-1', role: 'hero', layout: 'stack', hierarchy: { hasHeading: true, hasSubheading: true, hasCta: true, media: 'none' }, density: 'spacious' },
+            { id: 'features-2', role: 'features', layout: 'grid', hierarchy: { hasHeading: true, hasSubheading: true, hasCta: false, media: 'none' }, density: 'normal', columns: 3 },
+            { id: 'cta-3', role: 'cta', layout: 'stack', hierarchy: { hasHeading: true, hasSubheading: true, hasCta: true, media: 'none' }, density: 'spacious' },
+            { id: 'footer-4', role: 'footer', layout: 'grid', hierarchy: { hasHeading: false, hasSubheading: false, hasCta: false, media: 'none' }, density: 'normal', columns: 4 },
+          ],
+        },
+        harvestedSVGs: [
+          { svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg>', category: 'icon', context: 'sparkles-icon' },
+          { svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>', category: 'icon', context: 'layout-icon' },
+          { svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>', category: 'icon', context: 'settings-icon' },
+          { svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>', category: 'icon', context: 'check-circle-icon' },
+          { svg: '<svg viewBox="0 0 32 32"><rect width="32" height="32" rx="6" fill="#18181B"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="white" font-weight="bold" font-size="14">ui</text></svg>', category: 'logo', context: 'shadcn-logo' },
+        ],
+        extractedImages: [],
+        motionCSS: `/* Motion: Subtle and functional */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes accordion-down {
+  from { height: 0; }
+  to { height: var(--radix-accordion-content-height); }
+}
+.animate-fade { animation: fadeIn 200ms ease-out; }
+.animate-slide-down { animation: slideDown 200ms cubic-bezier(0.4, 0, 0.2, 1); }
+.transition-colors { transition: color 150ms, background-color 150ms, border-color 150ms; }
+.hover\\:bg-accent:hover { background-color: hsl(var(--accent)); }
+.active\\:scale-95:active { transform: scale(0.95); }
+.focus-visible\\:ring-2:focus-visible { box-shadow: 0 0 0 2px hsl(var(--ring)); }`,
         cssVariables: {
           '--background': '0 0% 100%',
           '--foreground': '240 10% 3.9%',
+          '--card': '0 0% 100%',
+          '--card-foreground': '240 10% 3.9%',
+          '--popover': '0 0% 100%',
+          '--popover-foreground': '240 10% 3.9%',
           '--primary': '240 5.9% 10%',
+          '--primary-foreground': '0 0% 98%',
+          '--secondary': '240 4.8% 95.9%',
+          '--secondary-foreground': '240 5.9% 10%',
+          '--muted': '240 4.8% 95.9%',
+          '--muted-foreground': '240 3.8% 46.1%',
+          '--accent': '240 4.8% 95.9%',
+          '--accent-foreground': '240 5.9% 10%',
+          '--destructive': '0 84.2% 60.2%',
+          '--destructive-foreground': '0 0% 98%',
+          '--border': '240 5.9% 90%',
+          '--input': '240 5.9% 90%',
+          '--ring': '240 5.9% 10%',
           '--radius': '0.5rem',
         },
+        rawCSS: `
+/* shadcn/ui component patterns */
+.card { background: hsl(var(--card)); border: 1px solid hsl(var(--border)); border-radius: var(--radius); }
+.btn-primary { background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); border-radius: calc(var(--radius) - 2px); }
+.btn-outline { border: 1px solid hsl(var(--border)); background: transparent; }
+.btn-ghost { background: transparent; }
+.btn-ghost:hover { background: hsl(var(--accent)); }
+.input { border: 1px solid hsl(var(--input)); border-radius: calc(var(--radius) - 2px); background: transparent; }
+.input:focus { border-color: hsl(var(--ring)); box-shadow: 0 0 0 1px hsl(var(--ring)); }
+`,
       },
 
       'tailwindcss.com': {
@@ -1027,6 +1181,110 @@ export class URLAnalyzer {
           '--sky-400': '#38BDF8',
           '--slate-900': '#0F172A',
         },
+      },
+
+      // =====================================
+      // RELUME.IO - Elite Webflow-based design
+      // =====================================
+      'relume.io': {
+        success: true,
+        extractedColors: {
+          backgrounds: ['#FFFFFF', '#F8F8F8', '#0F0F0F', '#1A1A1A'],
+          texts: ['#0F0F0F', '#1A1A1A', '#4A4A4A', '#FFFFFF', '#F5F5F5'],
+          accents: ['#6366F1', '#4F46E5', '#7C3AED', '#EC4899'],
+          borders: ['#E5E5E5', '#D4D4D4', '#333333', '#404040'],
+        },
+        extractedTypography: {
+          fontFamilies: ['Inter', 'Plus Jakarta Sans', 'system-ui', 'sans-serif'],
+          fontSizes: ['14px', '16px', '18px', '20px', '24px', '32px', '48px', '64px', '80px'],
+          fontWeights: ['400', '500', '600', '700', '800', '900'],
+          lineHeights: ['1.2', '1.3', '1.4', '1.5', '1.6'],
+        },
+        extractedSpacing: {
+          paddings: ['16px', '24px', '32px', '48px', '64px', '80px', '120px'],
+          margins: ['16px', '24px', '32px', '48px', '64px'],
+          gaps: ['16px', '24px', '32px', '48px'],
+        },
+        extractedComponents: {
+          borderRadii: ['8px', '12px', '16px', '24px', '32px', '9999px'],
+          shadows: [
+            '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+            '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+            '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
+            '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+          ],
+          transitions: [
+            'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+            'transform 0.2s ease-out',
+            'opacity 0.3s ease',
+          ],
+        },
+        extractedArchetypes: {
+          header: 'floating',
+          hero: 'split',
+          features: 'bento',
+          interactive: ['hover-scale', 'magnetic-buttons', 'scroll-reveal'],
+        },
+        layoutDsl: {
+          sections: [
+            { id: 'nav-0', role: 'nav', layout: 'stack', hierarchy: { hasHeading: false, hasSubheading: false, hasCta: true, media: 'none' }, density: 'normal' },
+            { id: 'hero-1', role: 'hero', layout: 'split', hierarchy: { hasHeading: true, hasSubheading: true, hasCta: true, media: 'image' }, density: 'spacious' },
+            { id: 'features-2', role: 'features', layout: 'bento', hierarchy: { hasHeading: true, hasSubheading: true, hasCta: false, media: 'illustration' }, density: 'spacious', columns: 3 },
+            { id: 'testimonial-3', role: 'testimonial', layout: 'carousel', hierarchy: { hasHeading: true, hasSubheading: false, hasCta: false, media: 'image' }, density: 'normal' },
+            { id: 'cta-4', role: 'cta', layout: 'stack', hierarchy: { hasHeading: true, hasSubheading: true, hasCta: true, media: 'none' }, density: 'spacious' },
+            { id: 'footer-5', role: 'footer', layout: 'grid', hierarchy: { hasHeading: false, hasSubheading: false, hasCta: false, media: 'none' }, density: 'normal', columns: 4 },
+          ],
+        },
+        harvestedSVGs: [
+          { svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>', category: 'icon', context: 'time-icon' },
+          { svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>', category: 'icon', context: 'lightning-icon' },
+          { svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>', category: 'icon', context: 'box-icon' },
+          { svg: '<svg viewBox="0 0 200 200" fill="none"><defs><linearGradient id="relume-grad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#6366F1"/><stop offset="100%" style="stop-color:#EC4899"/></linearGradient></defs><circle cx="100" cy="100" r="80" fill="url(#relume-grad)" opacity="0.3"/></svg>', category: 'pattern', context: 'gradient-orb' },
+          { svg: '<svg viewBox="0 0 400 400" fill="none"><defs><radialGradient id="mesh-grad"><stop offset="0%" stop-color="#7C3AED" stop-opacity="0.4"/><stop offset="100%" stop-color="transparent"/></radialGradient></defs><circle cx="200" cy="200" r="150" fill="url(#mesh-grad)"/></svg>', category: 'pattern', context: 'gradient-mesh' },
+          { svg: '<svg viewBox="0 0 32 32"><rect width="32" height="32" rx="8" fill="#6366F1"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="white" font-weight="bold">R</text></svg>', category: 'logo', context: 'relume-logo' },
+        ],
+        extractedImages: [
+          'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=1200',
+          'https://images.unsplash.com/photo-1557804506-669a67965ba0?w=1200',
+        ],
+        motionCSS: `/* Motion Libraries Detected: GSAP, ScrollTrigger */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+.animate-fade-up { animation: fadeInUp 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+.animate-scale { animation: scaleIn 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+.animate-float { animation: float 3s ease-in-out infinite; }
+.hover-scale { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+.hover-scale:hover { transform: scale(1.02); }
+.magnetic-btn { transition: transform 0.2s ease-out; }`,
+        cssVariables: {
+          '--primary': '#6366F1',
+          '--secondary': '#7C3AED',
+          '--accent': '#EC4899',
+          '--background': '#FFFFFF',
+          '--foreground': '#0F0F0F',
+          '--muted': '#F8F8F8',
+          '--border': '#E5E5E5',
+          '--radius': '16px',
+        },
+        rawCSS: `
+/* Relume glass morphism */
+.glass { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.3); }
+/* Gradient borders */
+.gradient-border { position: relative; }
+.gradient-border::before { content: ''; position: absolute; inset: 0; padding: 1px; background: linear-gradient(135deg, #6366F1, #EC4899); border-radius: inherit; mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0); mask-composite: exclude; }
+/* Floating orbs */
+.orb { position: absolute; border-radius: 50%; filter: blur(60px); animation: float 6s ease-in-out infinite; }
+`,
       },
 
       'nextjs.org': {
