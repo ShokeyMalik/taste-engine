@@ -56,21 +56,6 @@ export interface URLAnalysisResult {
     features?: string; // 'grid', 'vertical-stack', 'bento'
     interactive?: string[]; // 'hover-effects', 'magnetic-buttons'
   };
-  layoutDsl?: {
-    sections: Array<{
-      id: string;
-      role: 'hero' | 'nav' | 'features' | 'testimonial' | 'pricing' | 'cta' | 'footer' | 'content' | 'unknown';
-      layout: 'stack' | 'split' | 'grid' | 'bento' | 'carousel';
-      hierarchy: {
-        hasHeading: boolean;
-        hasSubheading: boolean;
-        hasCta: boolean;
-        media: 'none' | 'image' | 'video' | 'illustration';
-      };
-      density: 'tight' | 'normal' | 'spacious';
-      columns?: number;
-    }>;
-  };
   harvestedSVGs: Array<{
     svg: string;
     category: 'logo' | 'icon' | 'pattern' | 'illustration';
@@ -121,34 +106,11 @@ export class URLAnalyzer {
       extractedMotion: { libraries: [], animationTypes: [] },
       extractedArchetypes: {},
       harvestedSVGs: [],
-      layoutDsl: { sections: [] },
       cssVariables: {},
       rawCSS: '',
     };
 
     try {
-      const webFetch = (globalThis as any).web_fetch as undefined | ((args: { prompt: string }) => Promise<{ output: string }>);
-      if (webFetch) {
-        const htmlResponse = await webFetch({ prompt: `Fetch HTML for ${url}` });
-        const htmlContent = htmlResponse?.output || '';
-        const styleSheetLinks = this.extractStylesheetLinks(htmlContent, url);
-        const inlineStyles = this.extractInlineStyles(htmlContent);
-        const cssParts: string[] = [inlineStyles];
-        for (const link of styleSheetLinks) {
-          const cssResponse = await webFetch({ prompt: `Fetch CSS ${link}` });
-          if (cssResponse?.output) cssParts.push(cssResponse.output);
-        }
-        const combinedCss = cssParts.join('\n');
-        const rawResult = await analyzeRawContent(htmlContent, combinedCss, url);
-        return {
-          ...rawResult,
-          success: true,
-          extractedArchetypes: rawResult.extractedArchetypes || {},
-          harvestedSVGs: rawResult.harvestedSVGs || [],
-          layoutDsl: rawResult.layoutDsl || { sections: [] },
-        };
-      }
-
       const domain = this.extractDomain(url);
       const knownPatterns = this.getKnownDomainPatterns(domain);
       if (knownPatterns) {
@@ -158,23 +120,17 @@ export class URLAnalyzer {
       const htmlResult = await withBrowser(url, async (browser) => {
         const html = await browser.getHTML();
         const archetypes = await this.identifyLayoutArchetypes(browser);
-        const layoutDsl = await this.extractLayoutDsl(browser);
-        const images = await this.extractImagesFromDom(browser, url);
         const svgs = await this.harvestSVGs(browser, url);
         const motionCSS = await this.extractLiteralMotion(browser);
         return {
           html,
           archetypes,
-          layoutDsl,
-          images,
           svgs,
           motionCSS
         }
       }, { waitUntil: 'networkidle', timeout: 90000 });
       let htmlContent = htmlResult.html;
       result.extractedArchetypes = htmlResult.archetypes;
-      result.layoutDsl = htmlResult.layoutDsl;
-      result.extractedImages = htmlResult.images || [];
       result.harvestedSVGs = htmlResult.svgs;
       result.motionCSS = htmlResult.motionCSS;
 
@@ -310,136 +266,43 @@ export class URLAnalyzer {
   public harvestSVGs(browser: any, url: string): Promise<URLAnalysisResult['harvestedSVGs']> {
     return browser.evaluateWithArgs((pageUrl: string) => {
       const results: any[] = [];
+      const svgs = Array.from(document.querySelectorAll('svg, [class*="icon"], [class*="logo"] svg'));
 
-      // Query ALL SVGs on the page - not just icons
-      const allSvgs = Array.from(document.querySelectorAll('svg'));
+      svgs.forEach(el => {
+        const svg = el.tagName.toLowerCase() === 'svg' ? (el as SVGElement) : el.querySelector('svg');
+        if (!svg) return;
 
-      // Also find SVGs that might be in shadow DOM or special containers
-      const svgContainers = document.querySelectorAll('[class*="icon"], [class*="logo"], [class*="illustration"], [class*="graphic"], [class*="pattern"], [class*="bg-"], [class*="background"], [class*="decoration"], [class*="blob"], [class*="shape"], [class*="gradient"]');
-      svgContainers.forEach(container => {
-        const innerSvgs = container.querySelectorAll('svg');
-        innerSvgs.forEach(svg => {
-          if (!allSvgs.includes(svg as SVGSVGElement)) {
-            allSvgs.push(svg as SVGSVGElement);
-          }
-        });
-      });
-
-      allSvgs.forEach(svg => {
         const bbox = svg.getBoundingClientRect();
         const raw = svg.outerHTML;
-        const style = window.getComputedStyle(svg);
-        const parentStyle = svg.parentElement ? window.getComputedStyle(svg.parentElement) : null;
+        const classes = (svg.className?.toString() || '') + (svg.parentElement?.className?.toString() || '');
+        const id = svg.id || '';
 
-        // Gather context info
-        const classes = (svg.className?.toString() || '') + ' ' + (svg.parentElement?.className?.toString() || '');
-        const id = svg.id || svg.parentElement?.id || '';
-        const position = style.position;
-        const opacity = parseFloat(style.opacity);
-        const zIndex = parseInt(style.zIndex) || 0;
-
-        // Check for gradients within the SVG
-        const hasGradient = raw.includes('<linearGradient') || raw.includes('<radialGradient') || raw.includes('gradient');
-        const hasPattern = raw.includes('<pattern') || raw.includes('pattern');
-        const hasFilter = raw.includes('<filter') || raw.includes('filter');
-        const hasClipPath = raw.includes('<clipPath') || raw.includes('clip-path');
-        const hasMask = raw.includes('<mask') || raw.includes('mask');
-
-        // Determine category with more sophisticated logic
         let category: 'logo' | 'icon' | 'pattern' | 'illustration' = 'icon';
 
-        // Logo detection
-        const isInHeader = !!svg.closest('header, nav, [class*="header"], [class*="nav"]');
-        const hasLogoClass = /logo|brand|mark/i.test(classes + id);
-        if ((hasLogoClass || isInHeader) && bbox.width > 20 && bbox.width < 300 && bbox.height < 150) {
-          category = 'logo';
+        // High priority branding detection
+        const pUrl = pageUrl || '';
+        if (classes.includes('logo') || id.includes('logo') || pUrl.includes('logo') || svg.closest('header')) {
+          if (bbox.width > 20 && bbox.width < 300) category = 'logo';
         }
 
-        // Pattern/Background detection (large, positioned absolutely, lower opacity)
-        const isBackgroundSvg = (
-          position === 'absolute' || position === 'fixed' ||
-          (parentStyle && (parentStyle.position === 'absolute' || parentStyle.position === 'fixed'))
-        );
-        const isLargeSvg = bbox.width > 300 || bbox.height > 300;
-        const isDecorativeSvg = /pattern|bg-|background|decoration|blob|shape|mesh|noise|texture|grid|dots|lines|wave|curve|organic/i.test(classes + id);
-
-        if (isLargeSvg || isBackgroundSvg || isDecorativeSvg || hasPattern) {
-          category = 'pattern';
-        }
-
-        // Illustration detection (medium size, colorful, detailed)
-        if (bbox.width > 100 && bbox.width <= 500 && bbox.height > 80) {
-          const pathCount = (raw.match(/<path/g) || []).length;
-          if (pathCount > 5 || hasGradient || hasFilter) {
-            category = 'illustration';
-          }
-        }
-
-        // Gradient mesh/blob detection - these are high value
-        if (hasGradient && (isLargeSvg || isBackgroundSvg)) {
-          category = 'pattern'; // Gradient meshes are patterns
-        }
-
-        // Small icons (under 48px)
-        if (bbox.width <= 48 && bbox.height <= 48) {
-          category = 'icon';
-        }
-
-        // Skip very tiny or broken SVGs
-        if (bbox.width < 10 || bbox.height < 10 || raw.length < 50) {
-          return;
-        }
-
-        // Skip if it's just an empty wrapper
-        if (!raw.includes('<path') && !raw.includes('<circle') && !raw.includes('<rect') && !raw.includes('<g') && !raw.includes('<use')) {
-          return;
-        }
+        if (bbox.width > 500) category = 'pattern';
+        if (bbox.width > 200 && bbox.width <= 500) category = 'illustration';
+        if (classes.includes('pattern') || classes.includes('bg-')) category = 'pattern';
 
         results.push({
           svg: raw,
           category,
-          context: `id:${id}, class:${classes}, size:${Math.round(bbox.width)}x${Math.round(bbox.height)}, position:${position}`,
-          metadata: {
-            width: bbox.width,
-            height: bbox.height,
-            hasGradient,
-            hasPattern,
-            hasFilter,
-            isBackground: isBackgroundSvg,
-            opacity
-          }
+          context: `id:${id}, class:${classes}`
         });
       });
 
-      // Also extract inline SVG symbols and defs that might be reused
-      const defs = document.querySelectorAll('svg defs, svg symbol');
-      defs.forEach(def => {
-        const raw = def.outerHTML;
-        if (raw.length > 100 && (raw.includes('<linearGradient') || raw.includes('<radialGradient') || raw.includes('<pattern'))) {
-          results.push({
-            svg: raw,
-            category: 'pattern',
-            context: 'From SVG defs/symbol',
-            metadata: { isDef: true }
-          });
-        }
-      });
-
-      // Filter and dedupe, prioritizing patterns and illustrations
+      // Filter and dedupe
       const seen = new Set();
-      const prioritized = results
-        .filter(r => {
-          if (seen.has(r.svg)) return false;
-          seen.add(r.svg);
-          return true;
-        })
-        .sort((a, b) => {
-          // Prioritize patterns > illustrations > logos > icons
-          const priority: Record<string, number> = { pattern: 4, illustration: 3, logo: 2, icon: 1 };
-          return (priority[b.category as string] || 0) - (priority[a.category as string] || 0);
-        });
-
-      return prioritized.slice(0, 50); // Increased limit for richer extraction
+      return results.filter(r => {
+        if (seen.has(r.svg)) return false;
+        seen.add(r.svg);
+        return r.svg.length > 50; // Ignore tiny fragments
+      }).slice(0, 30);
     });
   }
 
@@ -483,172 +346,23 @@ export class URLAnalyzer {
     });
   }
 
-  public extractLayoutDsl(browser: any): Promise<NonNullable<URLAnalysisResult['layoutDsl']>> {
-    return browser.evaluate(() => {
-      const sections = Array.from(document.querySelectorAll('header, nav, main > section, section, footer'));
-      const dslSections = sections.map((section, index) => {
-        const tag = section.tagName.toLowerCase();
-        const hasNav = tag === 'nav' || section.querySelector('nav');
-        const hasHeader = tag === 'header';
-        const hasFooter = tag === 'footer';
-        const h1 = section.querySelector('h1');
-        const h2 = section.querySelector('h2');
-        const ctas = section.querySelectorAll('button, a[href*="signup"], a[href*="pricing"], a[href*="get-started"]');
-        const images = section.querySelectorAll('img, picture, svg');
-        const videos = section.querySelectorAll('video');
-        const cards = section.querySelectorAll('[class*="card"], [class*="Card"], article');
-        const grids = section.querySelectorAll('[class*="grid"], [style*="grid"]');
-        const columns = section.querySelectorAll('[class*="col"], [class*="columns"]');
-
-        const rect = section.getBoundingClientRect();
-        const density =
-          rect.height < 320 ? 'tight' : rect.height > 720 ? 'spacious' : 'normal';
-
-        let role: any = 'unknown';
-        if (hasNav || hasHeader) role = 'nav';
-        else if (hasFooter) role = 'footer';
-        else if (h1) role = 'hero';
-        else if (ctas.length > 1 && images.length > 0) role = 'cta';
-        else if (cards.length >= 3) role = 'features';
-
-        let layout: any = 'stack';
-        if (grids.length > 0) layout = 'grid';
-        if (columns.length >= 2) layout = 'split';
-        if (cards.length >= 6) layout = 'bento';
-
-        let media: any = 'none';
-        if (videos.length > 0) media = 'video';
-        else if (images.length > 0) media = 'image';
-
-        const hasSubheading = !!section.querySelector('p, h3');
-
-        return {
-          id: `${tag}-${index}`,
-          role,
-          layout,
-          hierarchy: {
-            hasHeading: !!(h1 || h2),
-            hasSubheading,
-            hasCta: ctas.length > 0,
-            media,
-          },
-          density,
-          columns: columns.length > 0 ? columns.length : undefined,
-        };
-      });
-
-      return { sections: dslSections };
-    });
-  }
-
   public extractLiteralMotion(browser: any): Promise<string> {
     return browser.evaluate(() => {
       let motionRules = '';
       const sheets = Array.from(document.styleSheets);
 
-      // Patterns to filter out (framework resets, utility classes, garbage)
-      const garbagePatterns = [
-        'unset',
-        'inherit',
-        'initial',
-        '.w-',           // Webflow framework
-        '.w-webflow',
-        'box-sizing',
-        '-webkit-',      // Browser prefixes only
-        '-moz-',
-        'border-box',
-        'content-box',
-        'display: none',
-        'visibility: hidden',
-        'opacity: 0;',   // Simple opacity resets
-        'transform: none',
-        'transition: none',
-        'animation: none',
-        '.sr-only',      // Screen reader
-        '[hidden]',
-        'cursor: pointer', // Generic cursor
-        '* {',           // Universal selectors
-        '*,',
-        '*::before',
-        '*::after',
-      ];
-
-      // Patterns that indicate REAL motion we want to capture
-      const valuablePatterns = [
-        'translateX',
-        'translateY',
-        'translateZ',
-        'scale(',
-        'scale3d',
-        'rotate(',
-        'skew(',
-        'cubic-bezier',
-        'ease-in-out',
-        'ease-out',
-        'ease-in',
-        'spring(',
-        '@keyframes',
-        'animation-name',
-        'animation-duration',
-        'animation-delay',
-        'animation-timing',
-        'transform-origin',
-        'perspective',
-        'backface-visibility',
-        'will-change',
-      ];
-
       sheets.forEach(sheet => {
         try {
           const rules = Array.from(sheet.cssRules);
           rules.forEach(rule => {
-            const cssText = rule.cssText;
-
-            // Skip if it contains garbage patterns
-            const hasGarbage = garbagePatterns.some(pattern => cssText.includes(pattern));
-            if (hasGarbage) return;
-
-            // Check if it's a keyframe (always valuable)
-            if (cssText.includes('@keyframes')) {
-              // Only include keyframes with actual transforms
-              if (valuablePatterns.some(p => cssText.includes(p))) {
-                motionRules += cssText + '\n';
-              }
-              return;
-            }
-
-            // For transition/animation rules, ensure they have valuable content
-            if (cssText.includes('transition') || cssText.includes('animation')) {
-              const hasValuableContent = valuablePatterns.some(pattern => cssText.includes(pattern));
-              // Also check for duration patterns (not just 0s)
-              const hasDuration = /\d+(\.\d+)?(ms|s)/.test(cssText) && !cssText.includes('0s') && !cssText.includes('0ms');
-
-              if (hasValuableContent || hasDuration) {
-                motionRules += cssText + '\n';
-              }
+            if (rule.cssText.includes('@keyframes') || rule.cssText.includes('transition') || rule.cssText.includes('animation')) {
+              motionRules += rule.cssText + '\n';
             }
           });
-        } catch (e) { /* Cross-origin stylesheet - skip */ }
+        } catch (e) { }
       });
 
-      // Also extract motion library indicators
-      const motionLibraries: string[] = [];
-      document.querySelectorAll('script[src]').forEach(script => {
-        const src = (script as HTMLScriptElement).src.toLowerCase();
-        if (src.includes('gsap')) motionLibraries.push('GSAP');
-        if (src.includes('framer-motion')) motionLibraries.push('Framer Motion');
-        if (src.includes('anime')) motionLibraries.push('Anime.js');
-        if (src.includes('lottie') || src.includes('bodymovin')) motionLibraries.push('Lottie');
-        if (src.includes('scrolltrigger')) motionLibraries.push('ScrollTrigger');
-        if (src.includes('locomotive')) motionLibraries.push('Locomotive Scroll');
-      });
-
-      // Add library detection as a comment at the top
-      if (motionLibraries.length > 0) {
-        motionRules = `/* Motion Libraries Detected: ${[...new Set(motionLibraries)].join(', ')} */\n` + motionRules;
-      }
-
-      return motionRules.substring(0, 8000); // Increased cap for richer extraction
+      return motionRules.substring(0, 5000); // Cap for safety
     });
   }
 
@@ -702,129 +416,6 @@ export class URLAnalyzer {
 
 
     return { libraries: [...libraries], animationTypes: [...animationTypes] };
-  }
-
-  public extractImagesFromDom(browser: any, baseUrl: string): Promise<string[]> {
-    return browser.evaluate((origin: string) => {
-      const urls = new Set<string>();
-      const gradients: string[] = [];
-
-      const toAbs = (value?: string | null) => {
-        if (!value) return null;
-        try {
-          return new URL(value, origin).href;
-        } catch {
-          return null;
-        }
-      };
-
-      // Extract URL from CSS background-image value
-      const extractUrlFromBg = (bgValue: string): string | null => {
-        const match = bgValue.match(/url\(['"]?([^'")\s]+)['"]?\)/);
-        if (match && match[1] && !match[1].startsWith('data:')) {
-          return toAbs(match[1]);
-        }
-        return null;
-      };
-
-      // 1. Extract from <img> tags
-      document.querySelectorAll('img').forEach((img) => {
-        const src = toAbs(img.getAttribute('src')) || toAbs(img.getAttribute('data-src')) || toAbs(img.getAttribute('data-lazy-src'));
-        if (src) urls.add(src);
-        const srcset = img.getAttribute('srcset') || img.getAttribute('data-srcset');
-        if (srcset) {
-          const first = srcset.split(',')[0]?.trim().split(' ')[0];
-          const abs = toAbs(first);
-          if (abs) urls.add(abs);
-        }
-      });
-
-      // 2. Extract from <picture> sources
-      document.querySelectorAll('source').forEach((source) => {
-        const srcset = source.getAttribute('srcset');
-        if (srcset) {
-          srcset.split(',').forEach(src => {
-            const url = src.trim().split(' ')[0];
-            const abs = toAbs(url);
-            if (abs) urls.add(abs);
-          });
-        }
-      });
-
-      // 3. Extract from <video> poster attributes
-      document.querySelectorAll('video[poster]').forEach((video) => {
-        const poster = toAbs(video.getAttribute('poster'));
-        if (poster) urls.add(poster);
-      });
-
-      // 4. Extract background-image from computed styles (key elements only for performance)
-      const importantElements = document.querySelectorAll(
-        'section, header, footer, main, article, [class*="hero"], [class*="banner"], ' +
-        '[class*="background"], [class*="bg-"], [class*="image"], [class*="cover"], ' +
-        '[class*="header"], [class*="jumbotron"], [class*="splash"], [class*="feature"], ' +
-        '[class*="card"], [class*="cta"], [class*="testimonial"], div[style*="background"]'
-      );
-
-      importantElements.forEach((el) => {
-        const style = window.getComputedStyle(el);
-        const bgImage = style.backgroundImage;
-
-        if (bgImage && bgImage !== 'none') {
-          // Handle multiple backgrounds
-          const backgrounds = bgImage.split(/,(?![^(]*\))/); // Split by comma not in parentheses
-
-          backgrounds.forEach(bg => {
-            bg = bg.trim();
-            // Extract URLs
-            if (bg.includes('url(')) {
-              const url = extractUrlFromBg(bg);
-              if (url) urls.add(url);
-            }
-            // Also capture gradient patterns for design reference
-            if (bg.includes('gradient')) {
-              gradients.push(bg);
-            }
-          });
-        }
-      });
-
-      // 5. Also check inline style attributes
-      document.querySelectorAll('[style*="background"]').forEach((el) => {
-        const inlineStyle = el.getAttribute('style') || '';
-        const bgMatch = inlineStyle.match(/background(?:-image)?:\s*([^;]+)/);
-        if (bgMatch) {
-          const bgValue = bgMatch[1];
-          if (bgValue.includes('url(')) {
-            const url = extractUrlFromBg(bgValue);
-            if (url) urls.add(url);
-          }
-        }
-      });
-
-      // 6. Extract from CSS custom properties that might contain images
-      const root = document.documentElement;
-      const rootStyle = window.getComputedStyle(root);
-      ['--hero-image', '--bg-image', '--background-image', '--banner-image'].forEach(prop => {
-        const value = rootStyle.getPropertyValue(prop);
-        if (value && value.includes('url(')) {
-          const url = extractUrlFromBg(value);
-          if (url) urls.add(url);
-        }
-      });
-
-      // Filter out tracking pixels and tiny images by checking common patterns
-      const filtered = Array.from(urls).filter(url => {
-        const lower = url.toLowerCase();
-        return !lower.includes('pixel') &&
-               !lower.includes('tracking') &&
-               !lower.includes('analytics') &&
-               !lower.includes('1x1') &&
-               !lower.includes('spacer') &&
-               !lower.includes('.gif') || lower.includes('animation'); // Allow animated gifs
-      });
-
-      return filtered.slice(0, 40); // Increased limit
-    }, baseUrl);
   }
 
   parseCSS(cssContent: string): Partial<URLAnalysisResult> {
@@ -1316,7 +907,6 @@ export async function analyzeRawContent(htmlContent: string, cssContent: string,
     extractedMotion: { libraries: [], animationTypes: [] },
     extractedArchetypes: {},
     harvestedSVGs: [],
-    layoutDsl: { sections: [] },
     cssVariables: {},
     rawCSS: cssContent,
   };
